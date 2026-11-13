@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Cada evento é um documento. Só abre quem tem o código, que vai no link.
+    // Ninguém consegue listar os eventos nem apagar um evento inteiro.
+    match /eventos/{evento} {
+      allow get: if evento.size() >= 10;
+      allow create, update: if evento.size() >= 10
+        && request.resource.data.keys().hasOnly(['items', 'fixed', 'versoes', 'criadoEm', 'atualizadoEm']);
+      allow list, delete: if false;
+    }
+  }
+}
