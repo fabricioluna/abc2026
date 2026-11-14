@@ -234,6 +234,18 @@ button{cursor:pointer}
 <section class="sheet" id="sheet-add" hidden aria-label="Adicionar item">
   <div class="sheet-head"><div><h2>Adicionar</h2><p>O item aparece no centro da tela. Depois é só arrastar.</p></div>
     <button type="button" class="icon" data-close aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <details class="custom" id="tbBox">
+    <summary>Criar mesa com nome e cadeiras</summary>
+    <p style="margin-top:6px">Para a mesa de uma família ou de um convidado. As cadeiras se arrumam sozinhas em volta, e tudo pode ser mudado depois no próprio item.</p>
+    <label class="field">Nome na mesa<input id="tbName" type="text" maxlength="40" placeholder="Ex.: Família Souza"></label>
+    <label class="field">Formato<select id="tbShape"><option value="ret">Retangular</option><option value="redondo">Redonda</option></select></label>
+    <div class="two">
+      <label class="field"><span id="tbDText">Largura (m)</span><input id="tbD" type="text" inputmode="decimal" value="0,90"></label>
+      <label class="field" id="tbWBox">Comprimento (m)<input id="tbW" type="text" inputmode="decimal" value="2,20"></label>
+      <label class="field">Cadeiras<input id="tbSeats" type="number" inputmode="numeric" min="0" max="40" value="8"></label>
+    </div>
+    <button type="button" class="btn primary full" id="tbGo" style="margin-top:12px">Colocar no salão</button>
+  </details>
   <details class="custom" id="customBox">
     <summary>Criar item com medidas próprias</summary>
     <p style="margin-top:6px">Para qualquer peça do fornecedor: painel, arranjo, móvel, tenda. Use as medidas reais em metros.</p>
@@ -757,6 +769,19 @@ CAT.custom={name:'Item personalizado',note:'',r0:0,w0:1,d0:1,build:(it,P)=>{
   const h=Math.max(.02,+it.h||.75), col=it.c||'#b9a27a';
   if(it.sh==='redondo') addCyl(P,it.w/2,it.w/2,h,36,0,h/2,0,col); else addBox(P,it.w,h,it.d,0,h/2,0,col);
   return it.s|0; }};
+/* mesa com nome: medidas e número de cadeiras escolhidos pelo usuário; as cadeiras se arrumam em volta */
+CAT.mesap={name:'Mesa com nome',note:'',table:true,r0:0,w0:2.2,d0:.9,build:(it,P)=>{
+  const n=Math.max(0,Math.min(40,it.s|0));
+  if(it.sh==='redondo'){ const r=it.w/2; roundTable(P,r); if(n) ringChairs(P,n,Math.max(r+.38,n*.55/(2*Math.PI))); return n; }
+  const w=it.w, d=it.d; addBox(P,w,.04,d,0,.76,0,C.cloth); addBox(P,w+.02,.72,d+.02,0,.37,0,C.cloth2); addSph(P,.1,0,.86,0,'#c9a24e');
+  /* lados compridos primeiro; as cabeceiras só entram quando as laterais estão com metade ou mais */
+  const cap=L=>Math.max(1,Math.floor((L+.05)/.6)), lados=[w,w,d,d], cnt=[0,0,0,0];
+  for(let i=0;i<n;i++){ let best=0, bv=1e9;
+    for(let k=0;k<4;k++){ const c=cap(lados[k]), v=cnt[k]<c?cnt[k]/c+(k>1?.5:0):10+cnt[k]/lados[k]; if(v<bv-1e-9){ bv=v; best=k; } }
+    cnt[best]++; }
+  [[0,-(d/2+.35),Math.PI],[1,d/2+.35,0]].forEach(([k,z,ry])=>{ for(let j=0;j<cnt[k];j++) chairAt(P,-w/2+w*(j+.5)/cnt[k],z,ry); });
+  [[2,-(w/2+.35),-Math.PI/2],[3,w/2+.35,Math.PI/2]].forEach(([k,x,ry])=>{ for(let j=0;j<cnt[k];j++) chairAt(P,x,-d/2+d*(j+.5)/cnt[k],ry); });
+  return n; }};
 /* pacote "Mais para a festa": frente dos itens para -z, como o buffet e a mesa do bolo */
 function wheel(P,r,x,y,z,c){ const g=new THREE.CylinderGeometry(r,r,.05,16); g.rotateZ(Math.PI/2); g.translate(x,y,z); P.push([g,c]); }
 Object.assign(CAT,{
@@ -842,6 +867,7 @@ function addItem(s,silent){
   const cat=CAT[s.t]; if(!cat) return null;
   const it={id:nextId++,uid:s.id||rid(10),t:s.t,x:s.x||0,z:s.z||0,r:s.r!=null?s.r:cat.r0,w:s.w!=null?s.w:(cat.w0||0),d:s.d!=null?s.d:(cat.d0||0)};
   if(s.t==='custom'){ it.n=s.n||'Item'; it.sh=s.sh==='redondo'?'redondo':'ret'; it.h=s.h!=null?+s.h:.75; it.c=s.c||'#b9a27a'; it.s=s.s|0; if(it.sh==='redondo') it.d=it.w; }
+  if(s.t==='mesap'){ it.n=s.n||'Mesa'; it.sh=s.sh==='redondo'?'redondo':'ret'; it.s=s.s!=null?Math.max(0,Math.min(40,s.s|0)):8; if(it.sh==='redondo') it.d=it.w; }
   const {geo,seats}=buildGeo(it); it.seats=seats;
   it.group=new THREE.Group(); it.mesh=new THREE.Mesh(geo,M.vc); it.mesh.castShadow=true; it.mesh.receiveShadow=true;
   it.mesh.userData.item=it; it.group.add(it.mesh); setSelVis(it); nameLabel(it);
@@ -867,7 +893,8 @@ function worldBox(it){ const e=extents(it); return {minX:it.x+e.minX,maxX:it.x+e
 const KEY='salao37x15:atual', PKEY='salao37x15:planos', KEY_ARQ='salao37x15:arquivo';
 const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}}};
 function itemObj(i){ const o={t:i.t,x:+(+i.x).toFixed(3),z:+(+i.z).toFixed(3),r:+(+i.r).toFixed(4),w:+(+i.w||0).toFixed(3),d:+(+i.d||0).toFixed(3)};
-  if(i.t==='custom'){ o.n=i.n||'Item'; o.sh=i.sh||'ret'; o.h=+(+i.h).toFixed(3); o.c=i.c||'#b9a27a'; o.s=i.s|0; } return o; }
+  if(i.t==='custom'){ o.n=i.n||'Item'; o.sh=i.sh||'ret'; o.h=+(+i.h).toFixed(3); o.c=i.c||'#b9a27a'; o.s=i.s|0; }
+  if(i.t==='mesap'){ o.n=i.n||'Mesa'; o.sh=i.sh==='redondo'?'redondo':'ret'; o.s=i.s|0; } return o; }
 function itemJSON(i){ return JSON.stringify(itemObj(i)); }
 function serialize(){ return JSON.stringify({v:2,items:items.map(i=>Object.assign({id:i.uid},itemObj(i))),fixed:Object.assign({},fixedState),teto:opts.teto,snap:opts.snap}); }
 function load(s){
@@ -965,8 +992,11 @@ function select(it){
   if(!it){ card.hidden=true; updateDist(); return; }
   closeSheets(); renderCard(); updateDist(); if(card.hidden){ card.hidden=false; card.classList.remove('open'); void card.offsetWidth; card.classList.add('open'); }
 }
-function dispName(it){ return it.t==='custom'?(it.n||'Item personalizado'):CAT[it.t].name; }
+function dispName(it){ return it.t==='custom'?(it.n||'Item personalizado'):it.t==='mesap'?(it.n||'Mesa'):CAT[it.t].name; }
 function dimSpec(it){
+  if(it.t==='mesap'){ const r=it.sh==='redondo'?[{k:'w',label:'Diâmetro',min:.6,max:3.5,step:.1}]:
+      [{k:'d',label:'Largura',min:.5,max:4,step:.1},{k:'w',label:'Comprimento',min:.5,max:12,step:.1}];
+    r.push({k:'s',label:'Cadeiras',min:0,max:40,step:1,int:true}); return r; }
   if(it.t==='custom'){ const r=[{k:'w',label:it.sh==='redondo'?'Diâmetro':'Largura',min:.1,max:30,step:.1}];
     if(it.sh!=='redondo') r.push({k:'d',label:'Profundidade',min:.1,max:30,step:.1});
     r.push({k:'h',label:'Altura',min:.02,max:10,step:.1}); return r; }
@@ -979,21 +1009,31 @@ function renderCard(){
   const hTxt=it.t==='custom'?`, altura ${fmt2(it.h)} m`:'';
   $('#cardInfo').textContent=`Ocupa ${fmt2(e.maxX-e.minX)} × ${fmt2(e.maxZ-e.minZ)} m${hTxt}${seatTxt}`;
   const box=$('#dims'); box.innerHTML=''; if(readOnly) return;
-  if(it.t==='custom'){ const row=document.createElement('label'); row.className='dim';
+  if(it.t==='custom'||it.t==='mesap'){ const row=document.createElement('label'); row.className='dim';
     const sp=document.createElement('span'); sp.textContent='Nome';
     const inp=document.createElement('input'); inp.type='text'; inp.className='dimname'; inp.value=it.n||''; inp.maxLength=40;
-    inp.addEventListener('change',()=>{ const v=inp.value.trim()||'Item'; if(v===it.n) return; const b=serialize(); it.n=v; nameLabel(it); $('#cardName').textContent=v; commit(b); });
+    inp.addEventListener('change',()=>{ const v=inp.value.trim()||(it.t==='mesap'?'Mesa':'Item'); if(v===it.n) return; const b=serialize(); it.n=v; nameLabel(it); $('#cardName').textContent=v; commit(b); });
     row.append(sp,inp); box.appendChild(row); }
+  if(it.t==='mesap'){ const row=document.createElement('label'); row.className='dim';
+    const sp=document.createElement('span'); sp.textContent='Formato';
+    const sel=document.createElement('select'); sel.className='dimname';
+    for(const [v,t] of [['ret','Retangular'],['redondo','Redonda']]){ const o=document.createElement('option'); o.value=v; o.textContent=t; sel.appendChild(o); }
+    sel.value=it.sh==='redondo'?'redondo':'ret';
+    sel.addEventListener('change',()=>{ const b=serialize(); it.sh=sel.value;
+      if(it.sh==='redondo'){ const dm=Math.min(3.5,Math.max(1.2,Math.round((it.w+it.d)/2*10)/10)); it.w=it.d=dm; } else { it.w=Math.max(1.2,Math.min(12,it.w*1.25)); it.d=Math.min(4,Math.max(.8,it.d*.5)); }
+      rebuild(it); refreshStats(true); renderCard(); updateDist(); commit(b); });
+    row.append(sp,sel); box.appendChild(row); }
   for(const s of dimSpec(it)){
     const row=document.createElement('div'); row.className='dim';
     const lab=document.createElement('span'); lab.textContent=s.label;
     const st=document.createElement('div'); st.className='stepper';
     const minus=document.createElement('button'); minus.type='button'; minus.textContent='−'; minus.setAttribute('aria-label','Diminuir '+s.label.toLowerCase());
-    const inp=document.createElement('input'); inp.type='text'; inp.inputMode='decimal'; inp.value=fmt2(it[s.k]); inp.setAttribute('aria-label',s.label+' em metros');
-    const unit=document.createElement('span'); unit.className='unit'; unit.textContent='m';
+    const fv=v=>s.int?String(Math.round(+v||0)):fmt2(v);
+    const inp=document.createElement('input'); inp.type='text'; inp.inputMode=s.int?'numeric':'decimal'; inp.value=fv(it[s.k]); inp.setAttribute('aria-label',s.int?s.label:s.label+' em metros');
+    const unit=document.createElement('span'); unit.className='unit'; unit.textContent=s.int?'':'m';
     const plus=document.createElement('button'); plus.type='button'; plus.textContent='+'; plus.setAttribute('aria-label','Aumentar '+s.label.toLowerCase());
-    const setV=v=>{ v=Math.round(v*100)/100; if(!isFinite(v)){ inp.value=fmt2(it[s.k]); return; } v=Math.min(s.max,Math.max(s.min,v));
-      if(v===it[s.k]){ inp.value=fmt2(v); return; } const b=serialize(); it[s.k]=v; if(it.t==='custom'&&it.sh==='redondo'&&s.k==='w') it.d=v;
+    const setV=v=>{ v=s.int?Math.round(v):Math.round(v*100)/100; if(!isFinite(v)){ inp.value=fv(it[s.k]); return; } v=Math.min(s.max,Math.max(s.min,v));
+      if(v===it[s.k]){ inp.value=fv(v); return; } const b=serialize(); it[s.k]=v; if((it.t==='custom'||it.t==='mesap')&&it.sh==='redondo'&&s.k==='w') it.d=v;
       rebuild(it); refreshStats(true); renderCard(); updateDist(); commit(b); };
     minus.addEventListener('click',()=>setV(it[s.k]-s.step)); plus.addEventListener('click',()=>setV(it[s.k]+s.step));
     inp.addEventListener('change',()=>setV(parseFloat(inp.value.replace(',','.'))));
@@ -1052,7 +1092,7 @@ $('#dGo').addEventListener('click',()=>{
   const t=$('#dType').value, n=Math.max(1,Math.min(300,parseInt($('#dQty').value,10)||1));
   const gap=Math.max(1.2,parseFloat(String($('#dGap').value).replace(',','.'))||gapDefaults[t]); const area=$('#dArea').value;
   const before=serialize();
-  if($('#dReplace').checked) items.filter(i=>CAT[i.t].table).forEach(i=>removeItem(i,true));
+  if($('#dReplace').checked) items.filter(i=>CAT[i.t].table&&i.t!=='mesap').forEach(i=>removeItem(i,true)); /* mesas com nome ficam */
   const probe={t,w:0,d:0}; const pg=buildGeo(probe).geo; const bb=pg.boundingBox; pg.dispose();
   const hw=Math.max(-bb.min.x,bb.max.x), hd=Math.max(-bb.min.z,bb.max.z);
   const gx=gap, gz=t==='retangular'?Math.max(hd*2+.5,gap*.72):gap;
@@ -1141,7 +1181,7 @@ function textTag(text,fg,bg,size){
   sp.renderOrder=20; sp.userData.size=size||.034; paintLabel(sp,text,fg,bg); uiSprites.add(sp); return sp;
 }
 function nameLabel(it){
-  if(it.t!=='custom') return; const txt=it.n||'Item';
+  if(it.t!=='custom'&&it.t!=='mesap') return; const txt=it.n||(it.t==='mesap'?'Mesa':'Item');
   if(!it.label){ it.label=textTag(txt,'#ffffff','rgba(29,36,39,.85)',.03); it.group.add(it.label); }
   else if(it.label.userData.text!==txt) paintLabel(it.label,txt,'#ffffff','rgba(29,36,39,.85)');
   it.label.position.set(0,(+it.h||.75)+.3,0);
@@ -1204,6 +1244,18 @@ $('#mDone').addEventListener('click',()=>setMeasuring(false));
 
 /* -------------------------------------------------- item personalizado */
 const numIn=(sel,def)=>{ const v=parseFloat(String($(sel).value).replace(',','.')); return isFinite(v)&&v>0?v:def; };
+/* mesa com nome */
+$('#tbShape').addEventListener('change',e=>{ const r=e.target.value==='redondo'; $('#tbWBox').hidden=r; $('#tbDText').textContent=r?'Diâmetro (m)':'Largura (m)';
+  if(r&&numIn('#tbD',.9)<1) $('#tbD').value='1,50'; if(!r&&numIn('#tbD',.9)===1.5) $('#tbD').value='0,90'; });
+$('#tbGo').addEventListener('click',()=>{
+  const sh=$('#tbShape').value==='redondo'?'redondo':'ret', larg=numIn('#tbD',sh==='redondo'?1.5:.9);
+  const w=sh==='redondo'?Math.min(3.5,Math.max(.6,larg)):Math.min(12,Math.max(.5,numIn('#tbW',2.2)));
+  const d=sh==='redondo'?w:Math.min(4,Math.max(.5,larg));
+  const s=Math.max(0,Math.min(40,parseInt($('#tbSeats').value,10)||0)), n=($('#tbName').value||'').trim().slice(0,40)||'Mesa';
+  const before=serialize(); const p=floorAt(innerWidth/2,innerHeight*0.45)||new THREE.Vector3();
+  let x=p.x, z=p.z; if(opts.snap){ x=Math.round(x*4)/4; z=Math.round(z*4)/4; }
+  const it=addItem({t:'mesap',x,z,r:0,w,d,n,sh,s}); $('#tbName').value=''; closeSheets(); select(it); commit(before);
+});
 $('#cShape').addEventListener('change',e=>{ const r=e.target.value==='redondo'; $('#cDBox').hidden=r; $('#cWText').textContent=r?'Diâmetro (m)':'Largura (m)'; });
 $('#cGo').addEventListener('click',()=>{
   const sh=$('#cShape').value==='redondo'?'redondo':'ret';
@@ -1475,7 +1527,7 @@ function plantaPNG(){
   g.fillText(`${seats} lugares, ${tables} ${tables===1?'mesa':'mesas'}, ${items.length} ${items.length===1?'item':'itens'}. Baixada em ${fmtWhen(Date.now())}. Cada piso equivale a 1 m.`,.5*S,band*.74);
   /* nomes dos itens; mesas numeradas do bar para o palco */
   const px=(x,z)=>[(x+wM/2)*S,(z+hM/2)*S+band];
-  const tabs=items.filter(i=>CAT[i.t].table).sort((a,b)=>(a.x-b.x)||(a.z-b.z)); const num=new Map(tabs.map((t,k)=>[t,k+1]));
+  const tabs=items.filter(i=>CAT[i.t].table&&i.t!=='mesap').sort((a,b)=>(a.x-b.x)||(a.z-b.z)); const num=new Map(tabs.map((t,k)=>[t,k+1]));
   const placed=[];
   const tag=(lines,x,y)=>{ const fs=[Math.round(.34*S),Math.round(.26*S)];
     const ws=lines.map((t,k)=>{ g.font=`${k?500:600} ${fs[k]}px ${F}`; return g.measureText(t).width; });
@@ -1489,7 +1541,8 @@ function plantaPNG(){
     let cy=y0+.07*S; g.textAlign='center'; g.textBaseline='middle';
     lines.forEach((t,k)=>{ g.font=`${k?500:600} ${fs[k]}px ${F}`; g.fillStyle=k?'#5b6569':'#1d2427'; g.fillText(t,x,cy+fs[k]*.575); cy+=fs[k]*1.15; }); };
   for(const it of items){ const b=worldBox(it), [x,y]=px((b.minX+b.maxX)/2,(b.minZ+b.maxZ)/2);
-    if(num.has(it)) tag(['Mesa '+num.get(it),it.t==='bistro'?it.seats+' banquetas':it.seats+' lugares'],x,y);
+    if(it.t==='mesap') tag([dispName(it),it.seats+(it.seats===1?' lugar':' lugares')],x,y);
+    else if(num.has(it)) tag(['Mesa '+num.get(it),it.t==='bistro'?it.seats+' banquetas':it.seats+' lugares'],x,y);
     else tag(it.seats&&it.t!=='cadeira'?[dispName(it),it.seats+' lugares']:[dispName(it)],x,y); }
   return new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('png')),'image/png'));
 }

@@ -32,6 +32,7 @@ Os nomes dos menus podem mudar um pouco, mas o caminho é esse.
 ## Ferramentas
 
 - **Adicionar > Criar item com medidas próprias:** qualquer peça do fornecedor, com nome, formato, largura, profundidade, altura, cor e lugares. As medidas podem ser corrigidas depois no próprio item.
+- **Adicionar > Criar mesa com nome e cadeiras:** para a mesa de uma família ou convidado. Escolha o nome, o formato (retangular ou redonda), as medidas e quantas cadeiras; elas se arrumam sozinhas em volta. Tudo pode ser trocado depois no próprio item, inclusive o formato. O nome aparece no 3D e na imagem da Planta. O **Distribuir** com "Trocar as mesas" não apaga as mesas com nome.
 - **Adicionar > Mais para a festa:** arco de balões e biombo com largura ajustável, painel para fotos, espelho mágico, púlpito, torre de champanhe, ilha gastronômica, estação de café, chopeira, carrinho de pipoca, pufes, torre de luz e chapelaria.
 - **Medir:** toque em dois pontos do chão e aparece a distância em metros.
 - **Item selecionado:** mostra as medidas e a distância até cada parede.

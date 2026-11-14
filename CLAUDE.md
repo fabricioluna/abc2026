@@ -31,6 +31,7 @@ Planejador 2D (Planta) e 3D de um salão de festas real, usado para montar a fes
 
 Dá para testar sem mexer no projeto real com o emulador do Firestore (`firebase emulators:start --only firestore --project demo-...`), servindo o `config.js` com `emulador:{host:'127.0.0.1',port:8080}` no `FIREBASE_CONFIG`. Com esse campo o app chama `useEmulator`. Para testar o encerramento, use uma cópia do `firestore.rules` e troque `aberto()` entre `true` e `false` (o emulador recarrega sozinho).
 - Medidas sempre em metros reais. Item personalizado usa o tipo `custom` com nome, formato, largura, profundidade, altura, cor e lugares.
+- Mesa com nome usa o tipo `mesap` (`table:true`) com `n` (nome), `sh` (`ret` ou `redondo`), `w` (comprimento ou diâmetro), `d` (largura) e `s` (cadeiras, 0 a 40). As cadeiras são posicionadas no `build`. O Distribuir não a remove ao trocar mesas, e a imagem da Planta mostra o nome em vez de "Mesa N".
 
 ## Regras para mudanças
 
