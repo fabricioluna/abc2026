@@ -382,10 +382,9 @@ const readOnly=QS.has('ver'), verCode=(QS.get('ver')||'').toLowerCase().replace(
 if(readOnly) document.body.classList.add('so-ver');
 const fileMode=!readOnly&&QS.has('arquivo');
 let verLoaded=false;
-/* fim do acesso: fim do dia da formatura no horário de Brasília (00:00 do dia seguinte = 03:00 UTC) */
-const FORMATURA=(()=>{ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(window.FORMATURA||'').trim()); if(!m) return null;
-  return {txt:m[3]+'/'+m[2]+'/'+m[1],fim:Date.UTC(+m[1],+m[2]-1,+m[3])+27*3600e3}; })();
-function encerradoAgora(){ return !!FORMATURA&&Date.now()>=FORMATURA.fim; }
+/* encerramento manual: window.PLANEJAMENTO_ENCERRADO no config.js só evita tentar conectar e mostra o aviso;
+   quem bloqueia de verdade é a função aberto() do firestore.rules */
+function encerradoAgora(){ return window.PLANEJAMENTO_ENCERRADO===true; }
 let seedV=11; const rnd=()=>{seedV=(seedV*16807)%2147483647; return (seedV-1)/2147483646;};
 
 const canvas=$('#c');
@@ -1236,9 +1235,12 @@ function showShareLink(code,nome,novo){
   r.scrollIntoView({block:'nearest',behavior:reduceMotion?'auto':'smooth'});
 }
 function renderShared(){
-  const box=$('#vsBox'), root=$('#vsList'); box.hidden=!(evRef&&docExists); root.innerHTML='';
+  const box=$('#vsBox'), root=$('#vsList'); box.hidden=!(evRef&&docExists);
   const m=(latestRemote&&latestRemote.compartilhados)||{};
   const list=Object.keys(m).filter(k=>m[k]).map(k=>({code:k,nome:m[k].nome||'Versão',autor:m[k].autor||'',em:+m[k].em||0})).sort((a,b)=>b.em-a.em);
+  /* só redesenha se a lista mudou, para não desarmar o "Toque de novo para aplicar" a cada sincronização */
+  const sig=JSON.stringify(list); if(root.dataset.sig===sig&&root.childElementCount===(list.length?list.length+1:0)) return;
+  root.dataset.sig=sig; root.innerHTML='';
   if(!list.length) return;
   const h=document.createElement('h3'); h.textContent='Versões compartilhadas'; root.appendChild(h);
   for(const v of list){ const row=document.createElement('div'); row.className='plan shared';
@@ -1329,7 +1331,6 @@ function initSync(){
   const conferir=()=>{ if(!evRef||!docExists||document.hidden||!navigator.onLine||Date.now()-ultimaConf<30e3) return; ultimaConf=Date.now();
     evRef.update({atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()}).catch(err=>{ if(err&&err.code==='permission-denied') acessoNegado(); }); };
   document.addEventListener('visibilitychange',conferir); setInterval(conferir,10*60e3);
-  if(FORMATURA){ const falta=FORMATURA.fim-Date.now(); if(falta>0&&falta<2147483647) setTimeout(()=>showClosed(false),falta+1000); }
   stopSnap=evRef.onSnapshot({includeMetadataChanges:true},snap=>{
     if(!snap.exists){ if(!snap.metadata.fromCache&&!docExists) createDoc(); return; }
     docExists=true; latestRemote=snap.data();
@@ -1351,7 +1352,7 @@ confirmTap($('#newEvent'),'Toque de novo para criar',()=>{ const code=rid(12); s
 /* ------------------------------------------- encerramento do planejamento */
 function showClosed(ver){
   if(stopSnap){ stopSnap(); stopSnap=null; } evRef=null; docExists=false;
-  setSync('local'); const quando=FORMATURA?' da formatura de '+FORMATURA.txt:'';
+  setSync('local'); const quando=' da formatura';
   if(ver){ showNotice('Link encerrado',['Esta versão fazia parte do planejamento'+quando+', que já foi encerrado. O link não abre mais.']); return; }
   const acts=[{label:'Abrir arquivo de plano',primary:true,fn:pickFile}];
   let local=null; try{ local=JSON.parse(store.get(KEY)||'null'); }catch(e){}
@@ -1489,7 +1490,6 @@ function frame(now){
 
 /* --------------------------------------------------------- início */
 applyTheme(); resize();
-if(FORMATURA) $('#dlNote').textContent='Baixe o plano para guardar. O acesso pelo link termina no fim do dia '+FORMATURA.txt+'. O arquivo .json abre de novo aqui mesmo depois disso, e a imagem .png mostra a Planta vista de cima, com os nomes dos itens.';
 if(readOnly) startViewer();
 else if(fileMode) startFile();
 else if(encerradoAgora()){ load({}); showClosed(false); }

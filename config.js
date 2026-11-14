@@ -10,7 +10,7 @@ window.FIREBASE_CONFIG = {
   appId: "COLE_AQUI"
 };
 
-// Dia da formatura, no formato ANO-MÊS-DIA (por exemplo "2026-12-12").
-// Depois do fim desse dia (meia-noite de Brasília), o planejador mostra
-// "Planejamento encerrado". Use a mesma data da função aberto() no firestore.rules.
-window.FORMATURA = "AAAA-MM-DD";
+// Encerramento do planejamento. Deixe false enquanto a equipe estiver usando.
+// Ao encerrar, troque para true (e a função aberto() do firestore.rules para false):
+// o planejador passa a mostrar "Planejamento encerrado" sem tentar conectar.
+window.PLANEJAMENTO_ENCERRADO = false;
