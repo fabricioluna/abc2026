@@ -129,7 +129,8 @@ button{cursor:pointer}
 .empty{position:fixed;z-index:4;left:12px;right:12px;margin:0 auto;max-width:420px;
   top:calc(env(safe-area-inset-top,0px) + 74px);background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:15px}
-.empty b{display:block;font-weight:600;margin-bottom:2px}
+.empty b{display:block;font-weight:600;margin-bottom:2px;padding-right:40px}
+.empty #emptyClose{float:right;width:36px;height:36px;margin:-4px -6px 4px 8px}
 .empty span{color:var(--muted)}
 .toast{position:fixed;z-index:9;left:50%;top:calc(env(safe-area-inset-top,0px) + 70px);transform:translateX(-50%);
   background:var(--ink);color:var(--panel);border-radius:10px;padding:9px 14px;font-size:14px;font-weight:500;
@@ -194,6 +195,7 @@ button{cursor:pointer}
 </header>
 
 <div class="empty" id="empty">
+  <button type="button" class="icon" id="emptyClose" aria-label="Fechar a dica"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   <b>O salão está vazio</b>
   <span>Use Adicionar para colocar mesas, palco e pista, ou Distribuir para preencher com várias mesas de uma vez. Arraste qualquer item com o dedo para mudar de lugar.</span>
 </div>
@@ -1146,7 +1148,9 @@ function setMeasuring(on){
   measuring=on; $('#measureBtn').setAttribute('aria-pressed',String(on)); $('#measureBar').hidden=!on; mPts=[]; mGroup.visible=on;
   if(on){ closeSheets(); select(null); } if(verLoaded) $('#verBar').hidden=on; drawMeasure(); refreshEmpty(); updateDist();
 }
-function refreshEmpty(){ $('#empty').hidden=items.length>0||measuring||verLoaded; }
+const DICAKEY='salao37x15:dicaFechada';
+function refreshEmpty(){ $('#empty').hidden=items.length>0||measuring||verLoaded||store.get(DICAKEY)==='1'; }
+$('#emptyClose').addEventListener('click',()=>{ store.set(DICAKEY,'1'); $('#empty').hidden=true; });
 $('#measureBtn').addEventListener('click',()=>setMeasuring(!measuring));
 $('#mClear').addEventListener('click',()=>{ mPts=[]; drawMeasure(); });
 $('#mDone').addEventListener('click',()=>setMeasuring(false));
