@@ -623,8 +623,6 @@ const roofGroup=new THREE.Group(); scene.add(roofGroup);
 /* ------------------------------------ itens que já estão no salão */
 const FIXED={
   estrutura:{label:'Estrutura preta do palco',note:'Pórtico coberto de tecido, 6,4 × 3 m',box:{minX:15.15,maxX:18.5,minZ:-3.45,maxZ:3.45}},
-  balcao:{label:'Balcão de granito',note:'No fundo, perto do canto da entrada',box:{minX:-17.55,maxX:-16.65,minZ:4.25,maxZ:7.35}},
-  movel:{label:'Móvel coberto de preto',note:'Na frente da porta do depósito',box:{minX:-18.2,maxX:-17.2,minZ:1.85,maxZ:3.95}},
   lustres:{label:'Lustres de cristal',note:'Pendurados no telhado',box:null}
 };
 const fixedGroups={};
@@ -637,15 +635,6 @@ const fixedGroups={};
   const fm=new THREE.Mesh(merge(P),M.vc); fm.castShadow=true; g.add(fm);
   const sh=new THREE.Mesh(new THREE.PlaneGeometry(6.4,4.0),M.sheer); sh.rotation.y=Math.PI/2; sh.position.set(18.3,2.0,0); g.add(sh);
   scene.add(g); fixedGroups.estrutura=g;
-}
-{
-  const P=[]; addBox(P,0.8,1.05,3.0,-17.1,0.525,5.8,'#b7a68e'); addBox(P,0.9,0.04,3.1,-17.1,1.07,5.8,'#dfe6e3');
-  for(let i=0;i<6;i++) addBox(P,0.02,0.7,0.02,-16.69,0.55,4.55+i*0.5,'#9a8a74');
-  const m=new THREE.Mesh(merge(P),M.vc); m.castShadow=true; scene.add(m); fixedGroups.balcao=m;
-}
-{
-  const P=[]; addBox(P,0.9,1.0,2.0,-17.7,0.5,2.9,'#151515'); addBox(P,0.95,0.06,2.1,-17.7,0.03,2.9,'#111');
-  const m=new THREE.Mesh(merge(P),M.vc); m.castShadow=true; scene.add(m); fixedGroups.movel=m;
 }
 {
   const g=new THREE.Group();
@@ -776,7 +765,7 @@ const GROUPS=[
 
 /* --------------------------------------------------- estado dos itens */
 const items=[]; let nextId=1; let selected=null;
-const fixedState={estrutura:false,balcao:true,movel:true,lustres:false};
+const fixedState={estrutura:false,lustres:false}; /* balcão de granito e móvel coberto foram tirados do modelo; planos antigos com essas chaves continuam abrindo */
 const opts={teto:true,snap:true};
 const selMat=new THREE.MeshBasicMaterial({color:0xb8892f,transparent:true,opacity:.22,depthWrite:false});
 const selLineMat=new THREE.LineBasicMaterial({color:0xb8892f});

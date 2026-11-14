@@ -16,7 +16,7 @@ Planejador 2D (Planta) e 3D de um salão de festas real, usado para montar a fes
 - Eixo x no comprimento (−18,5 parede do bar e banheiros, +18,5 parede do palco). Eixo z na largura (+7,5 parede da entrada principal, −7,5 parede do jardim).
 - Duas colunas de pedra soltas no eixo central: x = −12,6 e x = 0,6, ambas em z = 0.
 - Pé direito de 6,4 m até a faixa preta, treliças acima.
-- Parede atrás da estrutura preta do palco é fechada. Itens fixos que podem ser ocultados: estrutura preta do palco, balcão de granito, móvel coberto e lustres.
+- Parede atrás da estrutura preta do palco é fechada. Itens fixos que podem ser ocultados: estrutura preta do palco e lustres. O balcão de granito e o móvel coberto de preto foram tirados do modelo a pedido do usuário; planos antigos ainda têm `fixed.balcao` e `fixed.movel`, que são ignorados.
 
 ## Como o código está organizado
 
