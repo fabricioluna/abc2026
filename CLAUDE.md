@@ -5,7 +5,8 @@ Planejador 2D (Planta) e 3D de um salão de festas real, usado para montar a fes
 ## Arquivos
 
 - `index.html`: o aplicativo inteiro (HTML, CSS e JavaScript num arquivo só). Usa three.js 0.128.0 e OrbitControls por CDN, e o Firebase compat 10.12.2.
-- `config.js`: configuração do Firebase. A apiKey é pública por natureza; a proteção está nas regras.
+- `config.js`: configuração do Firebase e `window.FORMATURA` ("AAAA-MM-DD"). A apiKey é pública por natureza; a proteção está nas regras.
+- Encerramento: a função `aberto()` do `firestore.rules` compara `request.time` com a data da formatura + 27 h (meia-noite de Brasília) e vale para eventos e versões compartilhadas. O app usa `window.FORMATURA` só para mostrar "Planejamento encerrado" sem tentar conectar; quem garante o bloqueio são as regras. As duas datas precisam ser iguais.
 - `firestore.rules`: regras do banco. Cada evento é o documento `eventos/{codigo}`, com os campos `items`, `fixed`, `versoes`, `compartilhados`, `criadoEm`, `atualizadoEm`. Se criar campo novo no documento, atualize o `hasOnly` das regras.
 - Versões compartilhadas por link ficam em `compartilhados/{codigo}` (código de 24 caracteres), com `nome`, `autor`, `dados` (o plano serializado, texto JSON) e `criadoEm`. Só podem ser criadas e lidas por código; nunca alteradas, apagadas ou listadas. Não guardam o código do evento. O evento guarda em `compartilhados.<codigo>` só `{nome, autor, em}` para a lista.
 - `LEIAME.md`: passo a passo de publicação para o usuário.
@@ -22,6 +23,13 @@ Planejador 2D (Planta) e 3D de um salão de festas real, usado para montar a fes
 - Cada item do plano tem `uid` estável. A sincronização envia só os itens que mudaram, com `update` em `items.<uid>`, para duas pessoas editarem itens diferentes ao mesmo tempo sem uma apagar a outra.
 - Desfazer reverte apenas os itens da última ação local.
 - `?ver=codigo` liga o modo só visualização (`readOnly`, classe `so-ver` no body): `save`, `commit` e `undo` não fazem nada, o arraste é bloqueado e não se lê nem grava o plano do aparelho. Toda função nova que altere o plano precisa respeitar `readOnly`.
+- `?arquivo=1` é o modo arquivo: abre o plano guardado em `salao37x15:arquivo` (vindo de Abrir arquivo de plano ou da cópia do aparelho), editável, salvo só no aparelho e sem sincronizar. Não confundir com `salao37x15:atual`, que é a cópia local do evento.
+- Arquivo baixado: `{tipo:'planejador-salao-37x15', formato:1, salvoEm, plano}`, em que `plano` é o mesmo formato de `serialize()`. A leitura também aceita o `serialize()` puro. A imagem da Planta é renderizada com câmera ortográfica num render target (`plantaPNG`), com os nomes desenhados num canvas 2D.
+- Uma aba parada não percebe mudança nas regras pelo ouvinte do Firestore. Por isso o app faz uma gravação mínima de `atualizadoEm` ao voltar para a aba e a cada 10 minutos; se for recusada, mostra o aviso de encerramento.
+
+## Testes
+
+Dá para testar sem mexer no projeto real com o emulador do Firestore (`firebase emulators:start --only firestore --project demo-...`), servindo o `config.js` com `emulador:{host:'127.0.0.1',port:8080}` no `FIREBASE_CONFIG`. Com esse campo o app chama `useEmulator`. Use uma cópia do `firestore.rules` com a data preenchida.
 - Medidas sempre em metros reais. Item personalizado usa o tipo `custom` com nome, formato, largura, profundidade, altura, cor e lugares.
 
 ## Regras para mudanças

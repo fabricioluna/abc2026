@@ -1,11 +1,20 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Fim do acesso: depois do fim do dia da formatura, ninguém lê nem grava nada.
+    // TROQUE AAAA, MM e DD pela data da formatura (a mesma do config.js), por exemplo
+    //   timestamp.date(2026, 12, 12) + duration.value(27, 'h')
+    // O "+ 27 h" leva até 03:00 UTC do dia seguinte, que é meia-noite em Brasília.
+    // Para encerrar antes, coloque uma data que já passou. Para reabrir, uma data futura.
+    function aberto() {
+      return request.time < timestamp.date(AAAA, MM, DD) + duration.value(27, 'h');
+    }
+
     // Cada evento é um documento. Só abre quem tem o código, que vai no link.
     // Ninguém consegue listar os eventos nem apagar um evento inteiro.
     match /eventos/{evento} {
-      allow get: if evento.size() >= 10;
-      allow create, update: if evento.size() >= 10
+      allow get: if aberto() && evento.size() >= 10;
+      allow create, update: if aberto() && evento.size() >= 10
         && request.resource.data.keys().hasOnly(['items', 'fixed', 'versoes', 'compartilhados', 'criadoEm', 'atualizadoEm']);
       allow list, delete: if false;
     }
@@ -14,8 +23,8 @@ service cloud.firestore {
     // pode ser criada e lida por quem tem o código, mas nunca alterada nem apagada.
     // Não guarda o código do evento, então quem recebe o link não chega ao evento.
     match /compartilhados/{codigo} {
-      allow get: if codigo.size() >= 20;
-      allow create: if codigo.size() >= 20
+      allow get: if aberto() && codigo.size() >= 20;
+      allow create: if aberto() && codigo.size() >= 20
         && request.resource.data.keys().hasOnly(['nome', 'autor', 'dados', 'criadoEm'])
         && request.resource.data.nome is string && request.resource.data.nome.size() <= 60
         && request.resource.data.autor is string && request.resource.data.autor.size() <= 40

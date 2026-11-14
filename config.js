@@ -9,3 +9,8 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "COLE_AQUI",
   appId: "COLE_AQUI"
 };
+
+// Dia da formatura, no formato ANO-MÊS-DIA (por exemplo "2026-12-12").
+// Depois do fim desse dia (meia-noite de Brasília), o planejador mostra
+// "Planejamento encerrado". Use a mesma data da função aberto() no firestore.rules.
+window.FORMATURA = "AAAA-MM-DD";

@@ -168,7 +168,7 @@ button{cursor:pointer}
 .notice h2{font-family:"Barlow Condensed","Barlow",sans-serif;font-weight:600;font-size:26px;line-height:1.1;margin:0 0 8px}
 .notice p{margin:0 0 6px;color:var(--muted);font-size:15px}
 .notice .btn{width:100%;margin-top:10px}
-.com-aviso .bottom,.com-aviso .verbar,.com-aviso .measurebar{display:none!important}
+.com-aviso .bottom,.com-aviso .verbar,.com-aviso .measurebar,.com-aviso #undo,.com-aviso #empty{display:none!important}
 .so-ver .bottom{grid-template-columns:repeat(2,1fr)}
 .so-ver [data-sheet="add"],.so-ver [data-sheet="dist"],.so-ver [data-sheet="planos"],.so-ver #undo,.so-ver .actions,.so-ver #empty,.so-ver #syncDot,.so-ver #rowSnap{display:none!important}
 @media (min-width:900px){
@@ -198,7 +198,8 @@ button{cursor:pointer}
   <span>Use Adicionar para colocar mesas, palco e pista, ou Distribuir para preencher com várias mesas de uma vez. Arraste qualquer item com o dedo para mudar de lugar.</span>
 </div>
 
-<div class="verbar" id="verBar" hidden aria-live="polite"><b id="verTitle">Abrindo a versão…</b><span id="verMeta"></span></div>
+<div class="verbar" id="verBar" hidden aria-live="polite"><b id="verTitle">Abrindo a versão…</b><span id="verMeta"></span> <button type="button" class="linkbtn" id="verExit" hidden>Fechar o arquivo</button></div>
+<input type="file" id="fileIn" accept=".json,application/json" hidden>
 
 <section class="notice" id="notice" hidden role="dialog" aria-modal="true" aria-labelledby="noticeTitle">
   <h2 id="noticeTitle"></h2>
@@ -306,7 +307,7 @@ button{cursor:pointer}
   </div>
   <div id="shareOff">
     <h3>Compartilhar com a equipe</h3>
-    <p>Para a decoradora e a cerimonialista editarem junto, configure o Firebase no arquivo config.js. O passo a passo está no LEIAME.</p>
+    <p id="shareOffText">Para a decoradora e a cerimonialista editarem junto, configure o Firebase no arquivo config.js. O passo a passo está no LEIAME.</p>
   </div>
   <div id="vsBox" hidden>
     <h3>Compartilhar esta versão</h3>
@@ -332,6 +333,10 @@ button{cursor:pointer}
     <button type="button" class="btn primary" id="planSave">Salvar</button>
   </div>
   <div id="planList"></div>
+  <h3>Guardar o resultado</h3>
+  <p id="dlNote">Baixe o plano para guardar. O arquivo .json abre de novo aqui, mesmo depois que o planejamento for encerrado. A imagem .png mostra a Planta vista de cima, com os nomes dos itens.</p>
+  <div class="savebar"><button type="button" class="btn primary" id="dlPlan" style="flex:1">Baixar plano</button><button type="button" class="btn" id="openFile" style="flex:1">Abrir arquivo de plano</button></div>
+  <p id="dlLinks" style="margin-top:8px" hidden>Se algum arquivo não baixou, toque aqui: <a id="dlJson" href="#">plano (.json)</a> e <a id="dlPng" href="#">Planta (.png)</a>.</p>
   <h3>Recomeçar</h3>
   <button type="button" class="btn danger full" id="planClear">Tirar todos os itens do salão</button>
   <button type="button" class="btn full" id="newEvent" style="margin-top:8px" hidden>Criar outro evento</button>
@@ -375,7 +380,12 @@ const fmt=n=>(Math.round(n*10)/10).toFixed(1).replace('.',',');
 const QS=new URLSearchParams(location.search);
 const readOnly=QS.has('ver'), verCode=(QS.get('ver')||'').toLowerCase().replace(/[^a-z0-9]/g,'');
 if(readOnly) document.body.classList.add('so-ver');
+const fileMode=!readOnly&&QS.has('arquivo');
 let verLoaded=false;
+/* fim do acesso: fim do dia da formatura no horário de Brasília (00:00 do dia seguinte = 03:00 UTC) */
+const FORMATURA=(()=>{ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(window.FORMATURA||'').trim()); if(!m) return null;
+  return {txt:m[3]+'/'+m[2]+'/'+m[1],fim:Date.UTC(+m[1],+m[2]-1,+m[3])+27*3600e3}; })();
+function encerradoAgora(){ return !!FORMATURA&&Date.now()>=FORMATURA.fim; }
 let seedV=11; const rnd=()=>{seedV=(seedV*16807)%2147483647; return (seedV-1)/2147483646;};
 
 const canvas=$('#c');
@@ -806,7 +816,7 @@ function clampPos(it,x,z){ const e=extents(it), m=.05;
 function worldBox(it){ const e=extents(it); return {minX:it.x+e.minX,maxX:it.x+e.maxX,minZ:it.z+e.minZ,maxZ:it.z+e.maxZ}; }
 
 /* ----------------------------------------- salvar, desfazer, planos */
-const KEY='salao37x15:atual', PKEY='salao37x15:planos';
+const KEY='salao37x15:atual', PKEY='salao37x15:planos', KEY_ARQ='salao37x15:arquivo';
 const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}}};
 function itemObj(i){ const o={t:i.t,x:+(+i.x).toFixed(3),z:+(+i.z).toFixed(3),r:+(+i.r).toFixed(4),w:+(+i.w||0).toFixed(3),d:+(+i.d||0).toFixed(3)};
   if(i.t==='custom'){ o.n=i.n||'Item'; o.sh=i.sh||'ret'; o.h=+(+i.h).toFixed(3); o.c=i.c||'#b9a27a'; o.s=i.s|0; } return o; }
@@ -821,7 +831,7 @@ function load(s){
 }
 const history=[];
 function commit(before){ if(readOnly) return; history.push({b:before,a:serialize()}); if(history.length>60) history.shift(); $('#undo').disabled=false; save(); }
-function save(){ if(readOnly) return; store.set(KEY,serialize()); pushChanges(); }
+function save(){ if(readOnly) return; store.set(fileMode?KEY_ARQ:KEY,serialize()); pushChanges(); }
 $('#undo').addEventListener('click',undo);
 function undo(){
   if(readOnly) return; const h=history.pop(); if(!h) return; const B=JSON.parse(h.b), A=JSON.parse(h.a);
@@ -1135,9 +1145,9 @@ function addMeasurePoint(cx,cy){
 }
 function setMeasuring(on){
   measuring=on; $('#measureBtn').setAttribute('aria-pressed',String(on)); $('#measureBar').hidden=!on; mPts=[]; mGroup.visible=on;
-  if(on){ closeSheets(); select(null); } if(readOnly&&verLoaded) $('#verBar').hidden=on; drawMeasure(); refreshEmpty(); updateDist();
+  if(on){ closeSheets(); select(null); } if(verLoaded) $('#verBar').hidden=on; drawMeasure(); refreshEmpty(); updateDist();
 }
-function refreshEmpty(){ $('#empty').hidden=items.length>0||measuring; }
+function refreshEmpty(){ $('#empty').hidden=items.length>0||measuring||verLoaded; }
 $('#measureBtn').addEventListener('click',()=>setMeasuring(!measuring));
 $('#mClear').addEventListener('click',()=>{ mPts=[]; drawMeasure(); });
 $('#mDone').addEventListener('click',()=>setMeasuring(false));
@@ -1158,7 +1168,7 @@ $('#cGo').addEventListener('click',()=>{
 const FB=window.FIREBASE_CONFIG||null;
 const fbReady=!!(FB&&FB.apiKey&&!/COLE/i.test(FB.apiKey)&&FB.projectId&&typeof firebase!=='undefined'&&firebase.firestore);
 const EVKEY='salao37x15:evento';
-let db=null, evRef=null, eventCode=null, docExists=false, latestRemote=null, lastSynced={}, lastFixed='', syncState='local', creating=false;
+let db=null, stopSnap=null, evRef=null, eventCode=null, docExists=false, latestRemote=null, lastSynced={}, lastFixed='', syncState='local', creating=false;
 function rid(n){ const a='abcdefghijkmnpqrstuvwxyz23456789', r=new Uint32Array(n); let s='';
   if(window.crypto&&crypto.getRandomValues) crypto.getRandomValues(r); else for(let i=0;i<n;i++) r[i]=Math.floor(Math.random()*4e9);
   for(let i=0;i<n;i++) s+=a[r[i]%a.length]; return s; }
@@ -1183,7 +1193,7 @@ function pushChanges(){
   const fx=JSON.stringify(fixedState); if(fx!==lastFixed){ upd.fixed=Object.assign({},fixedState); n++; }
   if(!n) return;
   upd.atualizadoEm=FV.serverTimestamp(); lastSynced=now; lastFixed=fx;
-  evRef.update(upd).catch(err=>{ console.error(err); setSync('erro'); });
+  evRef.update(upd).catch(err=>{ console.error(err); if(err&&err.code==='permission-denied') acessoNegado(); else setSync('erro'); });
 }
 function applyItemState(it,r){
   let geo=false;
@@ -1208,7 +1218,7 @@ function createDoc(){
   for(const it of items) m[it.uid]=itemObj(it);
   evRef.set({items:m,fixed:Object.assign({},fixedState),versoes:{},criadoEm:FV.serverTimestamp(),atualizadoEm:FV.serverTimestamp()})
     .then(()=>toast('Evento criado. Toque em Evento para enviar o link.'))
-    .catch(err=>{ console.error(err); creating=false; setSync('erro'); toast('Não foi possível criar o evento. Confira as regras do Firestore (passo 3 do LEIAME).'); });
+    .catch(err=>{ console.error(err); creating=false; setSync('erro'); if(encerradoAgora()){ showClosed(false); return; } toast('Não foi possível criar o evento. Confira as regras do Firestore (passo 3 do LEIAME).'); });
 }
 function renderShare(){
   const on=!!evRef; $('#shareOn').hidden=!on; $('#shareOff').hidden=on; $('#newEvent').hidden=!on;
@@ -1247,7 +1257,7 @@ function applyShared(v,btn){
     const data=JSON.parse(snap.data().dados); const b=serialize();
     load(Object.assign({},data,{teto:opts.teto,snap:opts.snap})); commit(b); closeSheets();
     toast('“'+v.nome+'” aplicada ao plano. Use Desfazer se mudar de ideia.');
-  }).catch(err=>{ console.error(err); toast(err&&err.code==='permission-denied'?'O acesso a essa versão foi recusado':'Não foi possível aplicar a versão'); })
+  }).catch(err=>{ console.error(err); if(err&&err.code==='permission-denied') acessoNegado(); else toast('Não foi possível aplicar a versão'); })
     .finally(()=>{ btn.disabled=false; });
 }
 $('#vsStart').addEventListener('click',()=>{
@@ -1268,7 +1278,7 @@ $('#vsGo').addEventListener('click',()=>{
   batch.update(evRef,{['compartilhados.'+code]:{nome,autor,em:Date.now()},atualizadoEm:FV.serverTimestamp()});
   btn.disabled=true; btn.textContent='Gerando…';
   batch.commit().then(()=>{ $('#vsName').value=''; showShareLink(code,nome,true); })
-    .catch(err=>{ console.error(err); toast(err&&err.code==='permission-denied'?'O Firebase recusou. Confira as regras do Firestore (passo 3 do LEIAME).':'Não foi possível gerar o link. Verifique a internet.'); })
+    .catch(err=>{ console.error(err); if(err&&err.code==='permission-denied') acessoNegado(); else toast('Não foi possível gerar o link. Verifique a internet.'); })
     .finally(()=>{ btn.disabled=false; btn.textContent='Gerar link'; });
 });
 async function copyText(url,input){ try{ await navigator.clipboard.writeText(url); toast('Link copiado'); }
@@ -1287,6 +1297,7 @@ function showNotice(title,paras,actions){
 function startViewer(){
   load({}); $('#verBar').hidden=false;
   const fail=(title,paras,actions)=>{ $('#verBar').hidden=true; showNotice(title,paras,actions); };
+  if(encerradoAgora()){ $('#verBar').hidden=true; showClosed(true); return; }
   if(verCode.length<20){ fail('Link incompleto',['Este link de visualização está incompleto. Copie o link inteiro ou peça para enviarem de novo.']); return; }
   if(!fbReady){ fail('Não foi possível abrir',['Este planejador ainda não está ligado ao Firebase.']); return; }
   let ref; try{ ref=getDb().collection('compartilhados').doc(verCode); }catch(err){ console.error(err); fail('Não foi possível abrir',['Tente de novo em alguns minutos.']); return; }
@@ -1300,7 +1311,7 @@ function startViewer(){
     $('#verMeta').textContent=`Enviada por ${d.autor||'alguém'}${em?' em '+fmtWhen(em):''}. Só para ver.`;
     document.title=nome+', planejador do salão';
   }).catch(err=>{ console.error(err);
-    if(err&&err.code==='permission-denied') fail('Link encerrado',['Esta versão não está mais disponível para visualização.']);
+    if(err&&err.code==='permission-denied'){ $('#verBar').hidden=true; showClosed(true); }
     else fail('Não foi possível abrir',['Verifique a internet e tente de novo.'],[{label:'Tentar de novo',primary:true,fn:()=>location.reload()}]); });
 }
 function initSync(){
@@ -1312,14 +1323,21 @@ function initSync(){
   try{ evRef=getDb().collection('eventos').doc(code); }
   catch(err){ console.error(err); setSync('erro'); renderShare(); return; }
   setSync('saving'); renderShare();
-  evRef.onSnapshot({includeMetadataChanges:true},snap=>{
+  /* uma aba parada não fica sabendo do encerramento pelo ouvinte (a leitura usa o mesmo ouvinte e não reavalia as regras):
+     uma gravação mínima passa pelas regras e mostra o aviso se o acesso foi encerrado */
+  let ultimaConf=0;
+  const conferir=()=>{ if(!evRef||!docExists||document.hidden||!navigator.onLine||Date.now()-ultimaConf<30e3) return; ultimaConf=Date.now();
+    evRef.update({atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()}).catch(err=>{ if(err&&err.code==='permission-denied') acessoNegado(); }); };
+  document.addEventListener('visibilitychange',conferir); setInterval(conferir,10*60e3);
+  if(FORMATURA){ const falta=FORMATURA.fim-Date.now(); if(falta>0&&falta<2147483647) setTimeout(()=>showClosed(false),falta+1000); }
+  stopSnap=evRef.onSnapshot({includeMetadataChanges:true},snap=>{
     if(!snap.exists){ if(!snap.metadata.fromCache&&!docExists) createDoc(); return; }
     docExists=true; latestRemote=snap.data();
     setSync(snap.metadata.hasPendingWrites?'saving':(snap.metadata.fromCache?'offline':'ok'));
     if(drag){ remoteDirty=true; return; }
     applyRemote(latestRemote);
     if(!sheets.planos.hidden){ renderPlans(); renderShared(); }
-  },err=>{ console.error(err); setSync('erro'); toast('O Firebase recusou o acesso. Confira as regras do Firestore (passo 3 do LEIAME).'); });
+  },err=>{ console.error(err); if(err&&err.code==='permission-denied') acessoNegado(); else { setSync('erro'); toast('Não foi possível sincronizar. Verifique a internet e abra a página de novo.'); } });
   window.addEventListener('offline',()=>setSync('offline'));
   window.addEventListener('online',()=>{ if(syncState==='offline') setSync('saving'); });
 }
@@ -1329,6 +1347,116 @@ function confirmTap(btn,ask,fn){ let armed=false, t=0; const orig=btn.textConten
 $('#copyLink').addEventListener('click',()=>copyText(shareURL(),$('#shareLink')));
 $('#shareNative').addEventListener('click',()=>nativeShare(shareURL(),'Planejamento da festa no salão. Abra para ver e editar:'));
 confirmTap($('#newEvent'),'Toque de novo para criar',()=>{ const code=rid(12); store.set(EVKEY,code); location.href=location.pathname+'?evento='+code; });
+
+/* ------------------------------------------- encerramento do planejamento */
+function showClosed(ver){
+  if(stopSnap){ stopSnap(); stopSnap=null; } evRef=null; docExists=false;
+  setSync('local'); const quando=FORMATURA?' da formatura de '+FORMATURA.txt:'';
+  if(ver){ showNotice('Link encerrado',['Esta versão fazia parte do planejamento'+quando+', que já foi encerrado. O link não abre mais.']); return; }
+  const acts=[{label:'Abrir arquivo de plano',primary:true,fn:pickFile}];
+  let local=null; try{ local=JSON.parse(store.get(KEY)||'null'); }catch(e){}
+  if(local&&Array.isArray(local.items)&&local.items.length) acts.push({label:'Ver a cópia guardada neste aparelho',fn:()=>abrirArquivo(local,'Cópia guardada neste aparelho',0)});
+  showNotice('Planejamento encerrado',['O planejamento'+quando+' foi encerrado. Ninguém mais consegue ver nem mudar o plano pelo link.',
+    'Se você baixou o plano antes, abra o arquivo aqui para continuar vendo.'],acts);
+}
+function acessoNegado(){
+  setSync('erro');
+  if(docExists||encerradoAgora()) showClosed(false);
+  else toast('O Firebase recusou o acesso. Confira as regras do Firestore (passo 3 do LEIAME).');
+}
+
+/* ------------------------------------------------- arquivo de plano (.json) */
+const FILE_TIPO='planejador-salao-37x15';
+function pickFile(){ const f=$('#fileIn'); f.value=''; f.click(); }
+function parsePlanFile(t){ let o=null; try{ o=JSON.parse(t); }catch(e){ return null; }
+  if(o&&o.tipo===FILE_TIPO&&o.plano) o=o.plano;
+  return o&&Array.isArray(o.items)?o:null; }
+function abrirArquivo(plano,nome,salvoEm){
+  if(store.set(KEY_ARQ,JSON.stringify(plano))&&store.set(KEY_ARQ+':info',JSON.stringify({nome,salvoEm}))){ location.href=location.pathname+'?arquivo=1'; return; }
+  toast('Este navegador não deixou abrir o arquivo. Tente fora da janela anônima.');
+}
+$('#openFile').addEventListener('click',pickFile);
+$('#fileIn').addEventListener('change',e=>{ const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ const t=String(rd.result||''), plano=parsePlanFile(t); if(!plano){ toast('Este arquivo não é um plano do salão'); return; }
+    let salvoEm=0; try{ salvoEm=+JSON.parse(t).salvoEm||0; }catch(e){}
+    abrirArquivo(plano,f.name,salvoEm); };
+  rd.onerror=()=>toast('Não foi possível ler o arquivo'); rd.readAsText(f); });
+function startFile(){
+  let plano=null, info={}; try{ plano=JSON.parse(store.get(KEY_ARQ)||'null'); info=JSON.parse(store.get(KEY_ARQ+':info')||'{}')||{}; }catch(e){}
+  setSync('local');
+  $('#shareOffText').textContent='Este plano foi aberto de um arquivo e fica só neste aparelho. O que você mudar aqui não vai para o evento.';
+  if(!plano||!Array.isArray(plano.items)){ load({}); showNotice('Nenhum arquivo aberto',['Abra um arquivo de plano baixado antes.'],[{label:'Abrir arquivo de plano',primary:true,fn:pickFile},{label:'Voltar',fn:sairArquivo}]); return; }
+  if(plano.v!==2&&plano.fixed){ plano.fixed.estrutura=false; plano.fixed.lustres=false; }
+  load(plano); verLoaded=true; refreshEmpty();
+  $('#verTitle').textContent=info.nome||'Plano aberto de arquivo';
+  $('#verMeta').textContent=(info.salvoEm?'Baixado em '+fmtWhen(info.salvoEm)+'. ':'')+'Fica só neste aparelho, sem ligação com o evento.';
+  $('#verExit').hidden=false; $('#verBar').hidden=false;
+}
+function sairArquivo(){ location.href=location.pathname; }
+$('#verExit').addEventListener('click',sairArquivo);
+
+/* ------------------------------------------------- baixar plano e Planta */
+function hojeISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function plantaPNG(){
+  const MX=1.7, wM=ROOM.L+2*MX, hM=ROOM.W+2*MX, maxT=Math.min(renderer.capabilities.maxTextureSize||4096,4096);
+  const S=Math.max(30,Math.min(80,Math.floor(maxT/wM))), W=Math.round(wM*S), H=Math.round(hM*S), band=Math.round(1.5*S);
+  const cam=new THREE.OrthographicCamera(-wM/2,wM/2,hM/2,-hM/2,1,100); cam.up.set(0,0,-1); cam.position.set(0,60,0); cam.lookAt(0,0,0); cam.updateProjectionMatrix();
+  /* esconde o que é só da tela: telhado, lustres, etiquetas, régua, seleção */
+  const vis=[...uiSprites,distGroup,mGroup,roofGroup,fixedGroups.lustres,...items.map(i=>i.sel).filter(Boolean)].map(o=>[o,o.visible]);
+  const wv=walls.map(w=>[w,w.visible]);
+  for(const [o] of vis) o.visible=false; for(const w of walls) w.visible=true;
+  for(const l of labels) if(l.userData.end) l.rotation.z=Math.PI/2;
+  const rt=new THREE.WebGLRenderTarget(W,H), buf=new Uint8Array(W*H*4);
+  try{ renderer.setRenderTarget(rt); renderer.render(scene,cam); renderer.readRenderTargetPixels(rt,0,0,W,H,buf); }
+  finally{ renderer.setRenderTarget(null); rt.dispose(); for(const [o,v] of vis) o.visible=v; for(const [w,v] of wv) w.visible=v; orientLabels(); }
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=H+band; const g=cv.getContext('2d');
+  const img=g.createImageData(W,H), row=W*4;
+  for(let y=0;y<H;y++) img.data.set(buf.subarray((H-1-y)*row,(H-y)*row),y*row);
+  for(let i=3;i<img.data.length;i+=4) img.data[i]=255;
+  g.fillStyle='#f7f8f7'; g.fillRect(0,0,W,band); g.putImageData(img,0,band);
+  const F='"Barlow Condensed","Barlow",sans-serif';
+  let seats=0, tables=0; for(const i of items){ if(CAT[i.t].table) tables++; if(i.t!=='bistro') seats+=i.seats; }
+  g.fillStyle='#1d2427'; g.textBaseline='middle'; g.textAlign='left'; g.font=`600 ${Math.round(.62*S)}px ${F}`;
+  g.fillText('Planta do salão 37 × 15 m',.5*S,band*.36);
+  g.fillStyle='#5b6569'; g.font=`500 ${Math.round(.4*S)}px ${F}`;
+  g.fillText(`${seats} lugares, ${tables} ${tables===1?'mesa':'mesas'}, ${items.length} ${items.length===1?'item':'itens'}. Baixada em ${fmtWhen(Date.now())}. Cada piso equivale a 1 m.`,.5*S,band*.74);
+  /* nomes dos itens; mesas numeradas do bar para o palco */
+  const px=(x,z)=>[(x+wM/2)*S,(z+hM/2)*S+band];
+  const tabs=items.filter(i=>CAT[i.t].table).sort((a,b)=>(a.x-b.x)||(a.z-b.z)); const num=new Map(tabs.map((t,k)=>[t,k+1]));
+  const placed=[];
+  const tag=(lines,x,y)=>{ const fs=[Math.round(.34*S),Math.round(.26*S)];
+    const ws=lines.map((t,k)=>{ g.font=`${k?500:600} ${fs[k]}px ${F}`; return g.measureText(t).width; });
+    const w=Math.max(...ws)+.3*S, h=lines.reduce((s,t,k)=>s+fs[k]*1.15,0)+.14*S, x0=x-w/2, r=.12*S;
+    /* se encostar em outra etiqueta, desce ou sobe até achar lugar livre */
+    const livre=yy=>!placed.some(p=>x0<p[0]+p[2]+4&&x0+w+4>p[0]&&yy<p[1]+p[3]+4&&yy+h+4>p[1]);
+    let y0=y-h/2; for(let k=1;k<12&&!livre(y0);k++) y0=y-h/2+(k%2?1:-1)*Math.ceil(k/2)*(h+6);
+    placed.push([x0,y0,w,h]);
+    g.fillStyle='rgba(255,255,255,.9)'; g.beginPath(); g.moveTo(x0+r,y0); g.arcTo(x0+w,y0,x0+w,y0+h,r); g.arcTo(x0+w,y0+h,x0,y0+h,r); g.arcTo(x0,y0+h,x0,y0,r); g.arcTo(x0,y0,x0+w,y0,r); g.fill();
+    g.strokeStyle='rgba(29,36,39,.35)'; g.lineWidth=Math.max(1,S/40); g.stroke();
+    let cy=y0+.07*S; g.textAlign='center'; g.textBaseline='middle';
+    lines.forEach((t,k)=>{ g.font=`${k?500:600} ${fs[k]}px ${F}`; g.fillStyle=k?'#5b6569':'#1d2427'; g.fillText(t,x,cy+fs[k]*.575); cy+=fs[k]*1.15; }); };
+  for(const it of items){ const b=worldBox(it), [x,y]=px((b.minX+b.maxX)/2,(b.minZ+b.maxZ)/2);
+    if(num.has(it)) tag(['Mesa '+num.get(it),it.t==='bistro'?it.seats+' banquetas':it.seats+' lugares'],x,y);
+    else tag(it.seats&&it.t!=='cadeira'?[dispName(it),it.seats+' lugares']:[dispName(it)],x,y); }
+  return new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('png')),'image/png'));
+}
+let dlUrls=[];
+function baixarURL(url,nome){ const a=document.createElement('a'); a.href=url; a.download=nome; document.body.appendChild(a); a.click(); a.remove(); }
+$('#dlPlan').addEventListener('click',()=>{
+  const btn=$('#dlPlan'); if(btn.disabled) return; btn.disabled=true; btn.textContent='Preparando…';
+  dlUrls.forEach(u=>URL.revokeObjectURL(u)); dlUrls=[];
+  const dia=hojeISO(), nj='plano-salao-'+dia+'.json', np='planta-salao-'+dia+'.png';
+  const json=JSON.stringify({tipo:FILE_TIPO,formato:1,salvoEm:Date.now(),plano:JSON.parse(serialize())});
+  const uj=URL.createObjectURL(new Blob([json],{type:'application/json'})); dlUrls.push(uj);
+  const lj=$('#dlJson'); lj.href=uj; lj.download=nj; baixarURL(uj,nj);
+  const fonts=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('600 20px "Barlow Condensed"'),document.fonts.load('500 20px "Barlow Condensed"')]).catch(()=>{}):Promise.resolve();
+  fonts.then(()=>new Promise(r=>setTimeout(r,400))).then(plantaPNG).then(blob=>{
+    const up=URL.createObjectURL(blob); dlUrls.push(up); const lp=$('#dlPng'); lp.href=up; lp.download=np; lp.hidden=false;
+    baixarURL(up,np); $('#dlLinks').hidden=false; toast('Plano e imagem da Planta baixados');
+  }).catch(err=>{ console.error(err); $('#dlPng').hidden=true; $('#dlLinks').hidden=false; toast('O plano foi baixado, mas não deu para gerar a imagem'); })
+    .finally(()=>{ btn.disabled=false; btn.textContent='Baixar plano'; });
+});
 
 /* ---------------------------------------------------------- teclado */
 document.addEventListener('keydown',e=>{
@@ -1361,7 +1489,10 @@ function frame(now){
 
 /* --------------------------------------------------------- início */
 applyTheme(); resize();
+if(FORMATURA) $('#dlNote').textContent='Baixe o plano para guardar. O acesso pelo link termina no fim do dia '+FORMATURA.txt+'. O arquivo .json abre de novo aqui mesmo depois disso, e a imagem .png mostra a Planta vista de cima, com os nomes dos itens.';
 if(readOnly) startViewer();
+else if(fileMode) startFile();
+else if(encerradoAgora()){ load({}); showClosed(false); }
 else {
   let saved=null; try{ saved=JSON.parse(store.get(KEY)||'null'); }catch(e){}
   if(saved&&saved.v!==2&&saved.fixed){ saved.fixed.estrutura=false; saved.fixed.lustres=false; }
