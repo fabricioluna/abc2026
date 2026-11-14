@@ -154,6 +154,23 @@ button{cursor:pointer}
 .custom .field input,.custom .field select{background:var(--panel)}
 .field input[type=color]{padding:4px;height:44px}
 .linkbox input{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);padding:0 12px;font-size:14px;margin-top:10px}
+.linkbtn{border:0;background:none;padding:0;color:var(--brass);font-weight:600;text-decoration:underline;font-size:inherit}
+.shared{flex-wrap:wrap}
+.shared span{flex:1 1 100%}
+.shared .btn{flex:1 1 auto}
+.verbar{position:fixed;z-index:4;left:12px;right:12px;margin:0 auto;max-width:460px;top:calc(env(safe-area-inset-top,0px) + 74px);
+  background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:14px;
+  padding:9px 14px;font-size:14px;color:var(--muted)}
+.verbar b{display:block;color:var(--ink);font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.notice{position:fixed;z-index:15;left:16px;right:16px;top:50%;transform:translateY(-50%);margin:0 auto;max-width:440px;
+  max-height:calc(100% - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:auto;
+  background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:20px}
+.notice h2{font-family:"Barlow Condensed","Barlow",sans-serif;font-weight:600;font-size:26px;line-height:1.1;margin:0 0 8px}
+.notice p{margin:0 0 6px;color:var(--muted);font-size:15px}
+.notice .btn{width:100%;margin-top:10px}
+.com-aviso .bottom,.com-aviso .verbar,.com-aviso .measurebar{display:none!important}
+.so-ver .bottom{grid-template-columns:repeat(2,1fr)}
+.so-ver [data-sheet="add"],.so-ver [data-sheet="dist"],.so-ver [data-sheet="planos"],.so-ver #undo,.so-ver .actions,.so-ver #empty,.so-ver #syncDot,.so-ver #rowSnap{display:none!important}
 @media (min-width:900px){
   .sheet,.card{left:auto;right:16px;margin:0;width:400px;bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
 }
@@ -180,6 +197,14 @@ button{cursor:pointer}
   <b>O salão está vazio</b>
   <span>Use Adicionar para colocar mesas, palco e pista, ou Distribuir para preencher com várias mesas de uma vez. Arraste qualquer item com o dedo para mudar de lugar.</span>
 </div>
+
+<div class="verbar" id="verBar" hidden aria-live="polite"><b id="verTitle">Abrindo a versão…</b><span id="verMeta"></span></div>
+
+<section class="notice" id="notice" hidden role="dialog" aria-modal="true" aria-labelledby="noticeTitle">
+  <h2 id="noticeTitle"></h2>
+  <div id="noticeText"></div>
+  <div id="noticeActions"></div>
+</section>
 
 <div class="measurebar" id="measureBar" hidden>
   <p id="measureText" aria-live="polite">Toque no primeiro ponto do chão.</p>
@@ -267,7 +292,7 @@ button{cursor:pointer}
   <p style="margin-top:6px">A coluna central revestida de madeira é estrutural e continua sempre no modelo.</p>
   <h3>Exibição</h3>
   <label class="row"><span>Mostrar telhado e treliças</span><input type="checkbox" class="switch" id="optTeto" checked></label>
-  <label class="row"><span>Encaixar na grade<small>Os itens andam de 25 em 25 cm. Cada piso do chão equivale a 1 m.</small></span><input type="checkbox" class="switch" id="optSnap" checked></label>
+  <label class="row" id="rowSnap"><span>Encaixar na grade<small>Os itens andam de 25 em 25 cm. Cada piso do chão equivale a 1 m.</small></span><input type="checkbox" class="switch" id="optSnap" checked></label>
 </section>
 
 <section class="sheet" id="sheet-planos" hidden aria-label="Evento">
@@ -282,6 +307,23 @@ button{cursor:pointer}
   <div id="shareOff">
     <h3>Compartilhar com a equipe</h3>
     <p>Para a decoradora e a cerimonialista editarem junto, configure o Firebase no arquivo config.js. O passo a passo está no LEIAME.</p>
+  </div>
+  <div id="vsBox" hidden>
+    <h3>Compartilhar esta versão</h3>
+    <p>Gera um link só para ver, com uma cópia do plano como está agora. Quem recebe pode girar o 3D, ver a Planta e medir, mas não mexe no evento.</p>
+    <button type="button" class="btn primary full" id="vsStart" style="margin-top:10px">Compartilhar esta versão</button>
+    <div id="vsForm" hidden>
+      <label class="field">Nome da versão<input id="vsName" type="text" maxlength="60" placeholder="Ex.: Proposta da decoração"></label>
+      <label class="field" id="vsAuthorBox">Seu nome<input id="vsAuthor" type="text" maxlength="40" placeholder="Ex.: Ana, decoradora" autocomplete="name"></label>
+      <p id="vsAuthorNote" style="margin-top:10px" hidden>Enviando como <b id="vsAuthorName"></b>. <button type="button" class="linkbtn" id="vsAuthorChange">Trocar nome</button></p>
+      <div class="savebar"><button type="button" class="btn" id="vsCancel">Cancelar</button><button type="button" class="btn primary" id="vsGo" style="flex:1">Gerar link</button></div>
+    </div>
+    <div id="vsResult" hidden>
+      <p class="msg" id="vsResultText"></p>
+      <div class="linkbox"><input id="vsLink" readonly aria-label="Link da versão"></div>
+      <div class="savebar"><button type="button" class="btn primary" id="vsCopy">Copiar link</button><button type="button" class="btn" id="vsNative">Enviar pelo celular</button></div>
+    </div>
+    <div id="vsList"></div>
   </div>
   <h3>Versões salvas</h3>
   <p id="verNote">Ficam salvas neste aparelho.</p>
@@ -330,6 +372,10 @@ const COL={x:-12.6,z:0}; const COLS=[COL,{x:0.6,z:0}];
 const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $=s=>document.querySelector(s);
 const fmt=n=>(Math.round(n*10)/10).toFixed(1).replace('.',',');
+const QS=new URLSearchParams(location.search);
+const readOnly=QS.has('ver'), verCode=(QS.get('ver')||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+if(readOnly) document.body.classList.add('so-ver');
+let verLoaded=false;
 let seedV=11; const rnd=()=>{seedV=(seedV*16807)%2147483647; return (seedV-1)/2147483646;};
 
 const canvas=$('#c');
@@ -774,11 +820,11 @@ function load(s){
   applyFixed(); syncOptions(); refreshStats();
 }
 const history=[];
-function commit(before){ history.push({b:before,a:serialize()}); if(history.length>60) history.shift(); $('#undo').disabled=false; save(); }
-function save(){ store.set(KEY,serialize()); pushChanges(); }
+function commit(before){ if(readOnly) return; history.push({b:before,a:serialize()}); if(history.length>60) history.shift(); $('#undo').disabled=false; save(); }
+function save(){ if(readOnly) return; store.set(KEY,serialize()); pushChanges(); }
 $('#undo').addEventListener('click',undo);
 function undo(){
-  const h=history.pop(); if(!h) return; const B=JSON.parse(h.b), A=JSON.parse(h.a);
+  if(readOnly) return; const h=history.pop(); if(!h) return; const B=JSON.parse(h.b), A=JSON.parse(h.a);
   const mb=new Map(B.items.map(i=>[i.id,i])), ma=new Map(A.items.map(i=>[i.id,i])), cur=new Map(items.map(i=>[i.uid,i]));
   for(const id of new Set([...mb.keys(),...ma.keys()])){ const b=mb.get(id), a=ma.get(id);
     if(JSON.stringify(b)===JSON.stringify(a)) continue; const it=cur.get(id);
@@ -835,7 +881,7 @@ canvas.addEventListener('pointerdown',e=>{
   down.x=e.clientX; down.y=e.clientY; down.moved=false; down.onItem=false;
   if(measuring) return;
   const it=pick(e); down.onItem=!!it;
-  if(it){ select(it); const p=floorAt(e.clientX,e.clientY);
+  if(it){ select(it); const p=readOnly?null:floorAt(e.clientX,e.clientY);
     if(p){ drag={it,ox:it.x-p.x,oz:it.z-p.z,id:e.pointerId,before:serialize()}; controls.enabled=false; try{canvas.setPointerCapture(e.pointerId);}catch(_){} } }
 },{capture:true});
 canvas.addEventListener('pointermove',e=>{
@@ -874,7 +920,7 @@ function renderCard(){
   const seatTxt=it.seats?(it.t==='bistro'?`, ${it.seats} banquetas`:`, ${it.seats} ${it.seats===1?'lugar':'lugares'}`):'';
   const hTxt=it.t==='custom'?`, altura ${fmt2(it.h)} m`:'';
   $('#cardInfo').textContent=`Ocupa ${fmt2(e.maxX-e.minX)} × ${fmt2(e.maxZ-e.minZ)} m${hTxt}${seatTxt}`;
-  const box=$('#dims'); box.innerHTML='';
+  const box=$('#dims'); box.innerHTML=''; if(readOnly) return;
   if(it.t==='custom'){ const row=document.createElement('label'); row.className='dim';
     const sp=document.createElement('span'); sp.textContent='Nome';
     const inp=document.createElement('input'); inp.type='text'; inp.className='dimname'; inp.value=it.n||''; inp.maxLength=40;
@@ -908,7 +954,7 @@ const sheets={add:$('#sheet-add'),dist:$('#sheet-dist'),salao:$('#sheet-salao'),
 function closeSheets(){ for(const k in sheets) sheets[k].hidden=true; document.querySelectorAll('[data-sheet]').forEach(b=>b.setAttribute('aria-expanded','false')); }
 document.querySelectorAll('[data-sheet]').forEach(b=>b.addEventListener('click',()=>{
   const k=b.dataset.sheet, s=sheets[k], wasOpen=!s.hidden; closeSheets(); if(wasOpen) return;
-  select(null); if(measuring) setMeasuring(false); if(k==='planos'){ renderPlans(); renderShare(); }
+  select(null); if(measuring) setMeasuring(false); if(k==='planos'){ renderPlans(); renderShare(); resetShareForm(); }
   s.hidden=false; s.classList.remove('open'); void s.offsetWidth; s.classList.add('open'); b.setAttribute('aria-expanded','true');
 }));
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',closeSheets));
@@ -933,7 +979,7 @@ function applyFixed(){ for(const k in fixedGroups) fixedGroups[k].visible=fixedS
   const root=$('#fixedList');
   for(const k in FIXED){ const f=FIXED[k]; const row=document.createElement('label'); row.className='row';
     const sp=document.createElement('span'); sp.textContent=f.label; const sm=document.createElement('small'); sm.textContent=f.note; sp.appendChild(sm);
-    const cb=document.createElement('input'); cb.type='checkbox'; cb.className='switch'; cb.dataset.fixed=k; cb.checked=fixedState[k];
+    const cb=document.createElement('input'); cb.type='checkbox'; cb.className='switch'; cb.dataset.fixed=k; cb.checked=fixedState[k]; cb.disabled=readOnly;
     cb.addEventListener('change',()=>{ const b=serialize(); fixedState[k]=cb.checked; applyFixed(); commit(b); toast(cb.checked?f.label+' de volta no salão':f.label+' retirado do salão'); });
     row.append(sp,cb); root.appendChild(row); }
 }
@@ -1089,7 +1135,7 @@ function addMeasurePoint(cx,cy){
 }
 function setMeasuring(on){
   measuring=on; $('#measureBtn').setAttribute('aria-pressed',String(on)); $('#measureBar').hidden=!on; mPts=[]; mGroup.visible=on;
-  if(on){ closeSheets(); select(null); } drawMeasure(); refreshEmpty(); updateDist();
+  if(on){ closeSheets(); select(null); } if(readOnly&&verLoaded) $('#verBar').hidden=on; drawMeasure(); refreshEmpty(); updateDist();
 }
 function refreshEmpty(){ $('#empty').hidden=items.length>0||measuring; }
 $('#measureBtn').addEventListener('click',()=>setMeasuring(!measuring));
@@ -1112,11 +1158,15 @@ $('#cGo').addEventListener('click',()=>{
 const FB=window.FIREBASE_CONFIG||null;
 const fbReady=!!(FB&&FB.apiKey&&!/COLE/i.test(FB.apiKey)&&FB.projectId&&typeof firebase!=='undefined'&&firebase.firestore);
 const EVKEY='salao37x15:evento';
-let evRef=null, eventCode=null, docExists=false, latestRemote=null, lastSynced={}, lastFixed='', syncState='local', creating=false;
+let db=null, evRef=null, eventCode=null, docExists=false, latestRemote=null, lastSynced={}, lastFixed='', syncState='local', creating=false;
 function rid(n){ const a='abcdefghijkmnpqrstuvwxyz23456789', r=new Uint32Array(n); let s='';
   if(window.crypto&&crypto.getRandomValues) crypto.getRandomValues(r); else for(let i=0;i<n;i++) r[i]=Math.floor(Math.random()*4e9);
   for(let i=0;i<n;i++) s+=a[r[i]%a.length]; return s; }
 function shareURL(){ return location.origin+location.pathname+'?evento='+eventCode; }
+function verURL(code){ return location.origin+location.pathname+'?ver='+code; }
+function getDb(){ if(db) return db; if(!firebase.apps.length) firebase.initializeApp(FB); db=firebase.firestore();
+  if(FB.emulador) db.useEmulator(FB.emulador.host||'localhost',FB.emulador.port||8080); return db; }
+function fmtWhen(ms){ const d=new Date(ms); return d.toLocaleDateString('pt-BR')+' às '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
 function setSync(st){
   syncState=st;
   const msg={local:fbReady?'Conectando…':'Salvo só neste aparelho',ok:'Sincronizado com quem tem o link',saving:'Salvando…',
@@ -1163,6 +1213,95 @@ function createDoc(){
 function renderShare(){
   const on=!!evRef; $('#shareOn').hidden=!on; $('#shareOff').hidden=on; $('#newEvent').hidden=!on;
   if(on){ $('#shareLink').value=shareURL(); $('#shareNative').hidden=!navigator.share; }
+  renderShared();
+}
+
+/* ------------------------------------------- versões compartilhadas por link */
+const AKEY='salao37x15:autor';
+function resetShareForm(){ $('#vsForm').hidden=true; $('#vsResult').hidden=true; $('#vsStart').hidden=false; }
+function showShareLink(code,nome,novo){
+  $('#vsResultText').textContent=(novo?'Link pronto para “':'Link da versão “')+nome+'”. Quem abrir só consegue ver.';
+  $('#vsLink').value=verURL(code); $('#vsNative').hidden=!navigator.share;
+  $('#vsForm').hidden=true; $('#vsStart').hidden=false; const r=$('#vsResult'); r.hidden=false;
+  r.scrollIntoView({block:'nearest',behavior:reduceMotion?'auto':'smooth'});
+}
+function renderShared(){
+  const box=$('#vsBox'), root=$('#vsList'); box.hidden=!(evRef&&docExists); root.innerHTML='';
+  const m=(latestRemote&&latestRemote.compartilhados)||{};
+  const list=Object.keys(m).filter(k=>m[k]).map(k=>({code:k,nome:m[k].nome||'Versão',autor:m[k].autor||'',em:+m[k].em||0})).sort((a,b)=>b.em-a.em);
+  if(!list.length) return;
+  const h=document.createElement('h3'); h.textContent='Versões compartilhadas'; root.appendChild(h);
+  for(const v of list){ const row=document.createElement('div'); row.className='plan shared';
+    const sp=document.createElement('span'); sp.textContent=v.nome; const sm=document.createElement('small');
+    sm.textContent=[v.autor?'Enviada por '+v.autor:'',v.em?fmtWhen(v.em):''].filter(Boolean).join(', '); sp.appendChild(sm);
+    const see=document.createElement('button'); see.type='button'; see.className='btn'; see.textContent='Ver link';
+    see.addEventListener('click',()=>showShareLink(v.code,v.nome,false));
+    const ap=document.createElement('button'); ap.type='button'; ap.className='btn'; ap.textContent='Aplicar ao plano principal';
+    confirmTap(ap,'Toque de novo para aplicar',()=>applyShared(v,ap));
+    row.append(sp,see,ap); root.appendChild(row); }
+}
+function applyShared(v,btn){
+  btn.disabled=true;
+  getDb().collection('compartilhados').doc(v.code).get().then(snap=>{
+    if(!snap.exists){ toast('Essa versão não foi encontrada'); return; }
+    const data=JSON.parse(snap.data().dados); const b=serialize();
+    load(Object.assign({},data,{teto:opts.teto,snap:opts.snap})); commit(b); closeSheets();
+    toast('“'+v.nome+'” aplicada ao plano. Use Desfazer se mudar de ideia.');
+  }).catch(err=>{ console.error(err); toast(err&&err.code==='permission-denied'?'O acesso a essa versão foi recusado':'Não foi possível aplicar a versão'); })
+    .finally(()=>{ btn.disabled=false; });
+}
+$('#vsStart').addEventListener('click',()=>{
+  const a=(store.get(AKEY)||'').trim();
+  $('#vsAuthorBox').hidden=!!a; $('#vsAuthorNote').hidden=!a; $('#vsAuthorName').textContent=a; $('#vsAuthor').value=a;
+  $('#vsStart').hidden=true; $('#vsResult').hidden=true; $('#vsForm').hidden=false; $('#vsName').focus();
+});
+$('#vsAuthorChange').addEventListener('click',()=>{ $('#vsAuthorNote').hidden=true; $('#vsAuthorBox').hidden=false; $('#vsAuthor').focus(); $('#vsAuthor').select(); });
+$('#vsCancel').addEventListener('click',resetShareForm);
+$('#vsGo').addEventListener('click',()=>{
+  if(!(evRef&&docExists)){ toast('Espere o evento sincronizar para compartilhar'); return; }
+  const nome=($('#vsName').value||'').trim().slice(0,60)||('Versão de '+new Date().toLocaleDateString('pt-BR'));
+  const autor=($('#vsAuthor').value||'').trim().slice(0,40);
+  if(!autor){ $('#vsAuthorBox').hidden=false; $('#vsAuthorNote').hidden=true; $('#vsAuthor').focus(); toast('Escreva seu nome para quem receber saber quem enviou'); return; }
+  store.set(AKEY,autor);
+  const code=rid(24), FV=firebase.firestore.FieldValue, d=getDb(), batch=d.batch(), btn=$('#vsGo');
+  batch.set(d.collection('compartilhados').doc(code),{nome,autor,dados:serialize(),criadoEm:FV.serverTimestamp()});
+  batch.update(evRef,{['compartilhados.'+code]:{nome,autor,em:Date.now()},atualizadoEm:FV.serverTimestamp()});
+  btn.disabled=true; btn.textContent='Gerando…';
+  batch.commit().then(()=>{ $('#vsName').value=''; showShareLink(code,nome,true); })
+    .catch(err=>{ console.error(err); toast(err&&err.code==='permission-denied'?'O Firebase recusou. Confira as regras do Firestore (passo 3 do LEIAME).':'Não foi possível gerar o link. Verifique a internet.'); })
+    .finally(()=>{ btn.disabled=false; btn.textContent='Gerar link'; });
+});
+async function copyText(url,input){ try{ await navigator.clipboard.writeText(url); toast('Link copiado'); }
+  catch(e){ input.focus(); input.select(); toast('Selecione o link e copie'); } }
+function nativeShare(url,text){ if(navigator.share) navigator.share({title:'Planejamento do salão',text,url}).catch(()=>{}); }
+$('#vsCopy').addEventListener('click',()=>copyText($('#vsLink').value,$('#vsLink')));
+$('#vsNative').addEventListener('click',()=>nativeShare($('#vsLink').value,'Veja como ficou o planejamento do salão (só para ver):'));
+
+/* ---------------------------------------------------- modo só visualização */
+function showNotice(title,paras,actions){
+  $('#noticeTitle').textContent=title; const t=$('#noticeText'), a=$('#noticeActions'); t.innerHTML=''; a.innerHTML='';
+  for(const s of paras||[]){ const p=document.createElement('p'); p.textContent=s; t.appendChild(p); }
+  for(const x of actions||[]){ const b=document.createElement('button'); b.type='button'; b.className='btn'+(x.primary?' primary':''); b.textContent=x.label; b.addEventListener('click',x.fn); a.appendChild(b); }
+  closeSheets(); select(null); if(measuring) setMeasuring(false); document.body.classList.add('com-aviso'); $('#notice').hidden=false;
+}
+function startViewer(){
+  load({}); $('#verBar').hidden=false;
+  const fail=(title,paras,actions)=>{ $('#verBar').hidden=true; showNotice(title,paras,actions); };
+  if(verCode.length<20){ fail('Link incompleto',['Este link de visualização está incompleto. Copie o link inteiro ou peça para enviarem de novo.']); return; }
+  if(!fbReady){ fail('Não foi possível abrir',['Este planejador ainda não está ligado ao Firebase.']); return; }
+  let ref; try{ ref=getDb().collection('compartilhados').doc(verCode); }catch(err){ console.error(err); fail('Não foi possível abrir',['Tente de novo em alguns minutos.']); return; }
+  ref.get().then(snap=>{
+    if(!snap.exists){ fail('Versão não encontrada',['Confira se o link foi copiado inteiro.']); return; }
+    const d=snap.data(); let data=null; try{ data=JSON.parse(d.dados); }catch(e){}
+    if(!data){ fail('Não foi possível abrir',['Os dados desta versão estão danificados.']); return; }
+    load(data); verLoaded=true;
+    const nome=d.nome||'Versão', em=d.criadoEm&&d.criadoEm.toMillis?d.criadoEm.toMillis():0;
+    $('#verTitle').textContent='“'+nome+'”';
+    $('#verMeta').textContent=`Enviada por ${d.autor||'alguém'}${em?' em '+fmtWhen(em):''}. Só para ver.`;
+    document.title=nome+', planejador do salão';
+  }).catch(err=>{ console.error(err);
+    if(err&&err.code==='permission-denied') fail('Link encerrado',['Esta versão não está mais disponível para visualização.']);
+    else fail('Não foi possível abrir',['Verifique a internet e tente de novo.'],[{label:'Tentar de novo',primary:true,fn:()=>location.reload()}]); });
 }
 function initSync(){
   if(!fbReady){ setSync('local'); renderShare(); return; }
@@ -1170,7 +1309,7 @@ function initSync(){
   if(code.length<10) code=(store.get(EVKEY)||'').replace(/[^a-z0-9]/g,''); if(code.length<10) code=rid(12);
   eventCode=code; store.set(EVKEY,code);
   if(q.get('evento')!==code){ q.set('evento',code); window.history.replaceState(null,'',location.pathname+'?'+q.toString()+location.hash); }
-  try{ if(!firebase.apps.length) firebase.initializeApp(FB); evRef=firebase.firestore().collection('eventos').doc(code); }
+  try{ evRef=getDb().collection('eventos').doc(code); }
   catch(err){ console.error(err); setSync('erro'); renderShare(); return; }
   setSync('saving'); renderShare();
   evRef.onSnapshot({includeMetadataChanges:true},snap=>{
@@ -1179,7 +1318,7 @@ function initSync(){
     setSync(snap.metadata.hasPendingWrites?'saving':(snap.metadata.fromCache?'offline':'ok'));
     if(drag){ remoteDirty=true; return; }
     applyRemote(latestRemote);
-    if(!sheets.planos.hidden) renderPlans();
+    if(!sheets.planos.hidden){ renderPlans(); renderShared(); }
   },err=>{ console.error(err); setSync('erro'); toast('O Firebase recusou o acesso. Confira as regras do Firestore (passo 3 do LEIAME).'); });
   window.addEventListener('offline',()=>setSync('offline'));
   window.addEventListener('online',()=>{ if(syncState==='offline') setSync('saving'); });
@@ -1187,9 +1326,8 @@ function initSync(){
 function confirmTap(btn,ask,fn){ let armed=false, t=0; const orig=btn.textContent;
   btn.addEventListener('click',()=>{ if(!armed){ armed=true; btn.textContent=ask; t=setTimeout(()=>{ armed=false; btn.textContent=orig; },4000); return; }
     clearTimeout(t); armed=false; btn.textContent=orig; fn(); }); }
-$('#copyLink').addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText(shareURL()); toast('Link copiado'); }
-  catch(e){ const i=$('#shareLink'); i.focus(); i.select(); toast('Selecione o link e copie'); } });
-$('#shareNative').addEventListener('click',()=>{ if(navigator.share) navigator.share({title:'Planejamento do salão',text:'Planejamento da festa no salão. Abra para ver e editar:',url:shareURL()}).catch(()=>{}); });
+$('#copyLink').addEventListener('click',()=>copyText(shareURL(),$('#shareLink')));
+$('#shareNative').addEventListener('click',()=>nativeShare(shareURL(),'Planejamento da festa no salão. Abra para ver e editar:'));
 confirmTap($('#newEvent'),'Toque de novo para criar',()=>{ const code=rid(12); store.set(EVKEY,code); location.href=location.pathname+'?evento='+code; });
 
 /* ---------------------------------------------------------- teclado */
@@ -1197,7 +1335,7 @@ document.addEventListener('keydown',e=>{
   const tag=(e.target.tagName||'').toLowerCase(); if(tag==='input'||tag==='select'||tag==='textarea') return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); return; }
   if(e.key==='Escape'){ closeSheets(); select(null); }
-  if(!selected) return;
+  if(!selected||readOnly) return;
   if(e.key==='Delete'||e.key==='Backspace'){ e.preventDefault(); $('#del').click(); }
   if(e.key.toLowerCase()==='r') rotateSel(e.shiftKey?90:15);
 });
@@ -1223,10 +1361,13 @@ function frame(now){
 
 /* --------------------------------------------------------- início */
 applyTheme(); resize();
-let saved=null; try{ saved=JSON.parse(store.get(KEY)||'null'); }catch(e){}
-if(saved&&saved.v!==2&&saved.fixed){ saved.fixed.estrutura=false; saved.fixed.lustres=false; }
-load(saved||{});
-initSync();
+if(readOnly) startViewer();
+else {
+  let saved=null; try{ saved=JSON.parse(store.get(KEY)||'null'); }catch(e){}
+  if(saved&&saved.v!==2&&saved.fixed){ saved.fixed.estrutura=false; saved.fixed.lustres=false; }
+  load(saved||{});
+  initSync();
+}
 if(camera.aspect<1){ camera.position.set(-33,31,10); controls.target.set(2,0,-0.5); } else camera.position.set(-27,24,22);
 requestAnimationFrame(frame);
 })();

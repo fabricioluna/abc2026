@@ -6,8 +6,22 @@ service cloud.firestore {
     match /eventos/{evento} {
       allow get: if evento.size() >= 10;
       allow create, update: if evento.size() >= 10
-        && request.resource.data.keys().hasOnly(['items', 'fixed', 'versoes', 'criadoEm', 'atualizadoEm']);
+        && request.resource.data.keys().hasOnly(['items', 'fixed', 'versoes', 'compartilhados', 'criadoEm', 'atualizadoEm']);
       allow list, delete: if false;
+    }
+
+    // Versões compartilhadas por link (?ver=código). Cópia congelada do plano:
+    // pode ser criada e lida por quem tem o código, mas nunca alterada nem apagada.
+    // Não guarda o código do evento, então quem recebe o link não chega ao evento.
+    match /compartilhados/{codigo} {
+      allow get: if codigo.size() >= 20;
+      allow create: if codigo.size() >= 20
+        && request.resource.data.keys().hasOnly(['nome', 'autor', 'dados', 'criadoEm'])
+        && request.resource.data.nome is string && request.resource.data.nome.size() <= 60
+        && request.resource.data.autor is string && request.resource.data.autor.size() <= 40
+        && request.resource.data.dados is string && request.resource.data.dados.size() <= 800000
+        && request.resource.data.criadoEm == request.time;
+      allow list, update, delete: if false;
     }
   }
 }

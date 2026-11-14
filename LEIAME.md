@@ -37,6 +37,8 @@ Os nomes dos menus podem mudar um pouco, mas o caminho é esse.
 - **Item selecionado:** mostra as medidas e a distância até cada parede.
 - **Planta:** visão de cima, em escala. Cada piso do chão equivale a 1 m.
 - **Evento > Versões salvas:** guarde versões antes de mudanças grandes. Elas ficam no evento, visíveis para todos que têm o link.
+- **Evento > Compartilhar esta versão:** mostra o plano a alguém que não deve editar, como a família. Dê um nome à versão e diga quem está enviando (o nome fica guardado no aparelho). Sai um link `?ver=...` com uma cópia congelada do plano daquele momento. Quem abre pode girar o 3D, ver a Planta e medir, mas não move, não adiciona, não exclui e não chega ao evento, porque a cópia não leva o código do evento. Mudanças feitas depois no plano não aparecem nesse link: para mostrar de novo, gere outro.
+- **Versões compartilhadas:** na mesma folha aparecem todas as versões enviadas a partir do evento, com quem enviou e quando. **Ver link** mostra o link de novo. **Aplicar ao plano principal** troca o plano do evento por aquela versão (toque duas vezes para confirmar). Se foi engano, use **Desfazer**.
 - **Desfazer:** volta a última ação de quem tocou no botão, sem desmanchar o que as outras pessoas fizeram em outros itens.
 
 ## Cuidados
