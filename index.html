@@ -757,10 +757,68 @@ CAT.custom={name:'Item personalizado',note:'',r0:0,w0:1,d0:1,build:(it,P)=>{
   const h=Math.max(.02,+it.h||.75), col=it.c||'#b9a27a';
   if(it.sh==='redondo') addCyl(P,it.w/2,it.w/2,h,36,0,h/2,0,col); else addBox(P,it.w,h,it.d,0,h/2,0,col);
   return it.s|0; }};
+/* pacote "Mais para a festa": frente dos itens para -z, como o buffet e a mesa do bolo */
+function wheel(P,r,x,y,z,c){ const g=new THREE.CylinderGeometry(r,r,.05,16); g.rotateZ(Math.PI/2); g.translate(x,y,z); P.push([g,c]); }
+Object.assign(CAT,{
+  arco:{name:'Arco de balões',note:'vão ajustável',r0:0,w0:3,size:{w:{label:'Vão',min:1.5,max:8}},build:(it,P)=>{
+    const R=it.w/2, n=Math.max(8,Math.round(Math.PI*R/.2)), cores=['#c9a24e','#f4f1ea','#e6d3b0','#c9a24e','#f4f1ea'];
+    for(let i=0;i<=n;i++){ const a=Math.PI*i/n, x=-R*Math.cos(a), y=.25+R*Math.sin(a)*1.05;
+      addSph(P,.17,x,y,-.1,cores[i%5]); addSph(P,.15,x*.97,y+.05,.11,cores[(i+2)%5]); if(i%3===0) addSph(P,.1,x*1.04,y-.08,0,cores[(i+1)%5]); }
+    addBox(P,.3,.08,.3,-R,.04,0,'#2b2c2f'); addBox(P,.3,.08,.3,R,.04,0,'#2b2c2f'); return 0;}},
+  painelfoto:{name:'Painel para fotos',note:'3,00 × 2,40 m, painel da turma',r0:0,build:(it,P)=>{
+    addBox(P,3,2.4,.06,0,1.25,.25,'#e8e2d6'); addBox(P,3.1,.08,.1,0,2.49,.25,C.black); addBox(P,.08,2.5,.1,-1.55,1.25,.25,C.black); addBox(P,.08,2.5,.1,1.55,1.25,.25,C.black);
+    addBox(P,.9,.9,.02,0,1.55,.21,C.gold); addBox(P,2.2,.12,.02,0,.8,.21,'#3d3832');
+    for(const x of[-1.55,1.55]) addBox(P,.08,.04,.7,x,.02,.25,C.black);
+    addBox(P,2.4,.01,1.4,0,.005,-.6,'#b9a27a'); return 0;}},
+  espelho:{name:'Espelho mágico',note:'totem de fotos, 0,70 m',r0:0,build:(it,P)=>{
+    addBox(P,.7,.05,.5,0,.025,0,C.black2); addBox(P,.66,1.75,.12,0,.92,0,C.gold); addBox(P,.54,1.4,.02,0,1.0,-.07,'#9fb3bd');
+    addBox(P,.3,.08,.08,0,.3,-.07,C.black); return 0;}},
+  pulpito:{name:'Púlpito',note:'para os discursos',r0:0,build:(it,P)=>{
+    addBox(P,.6,1.08,.45,0,.54,0,'#4b3a2b'); addBox(P,.7,.05,.55,0,1.105,.02,'#3a2c20'); addBox(P,.6,.06,.02,0,.85,-.235,C.gold);
+    addBox(P,.3,.3,.02,0,.55,-.235,C.gold); addCyl(P,.008,.008,.32,6,0,1.28,-.12,C.black2); addSph(P,.025,0,1.45,-.14,C.black2); return 0;}},
+  champanhe:{name:'Torre de champanhe',note:'mesa redonda com taças para o brinde',r0:0,build:(it,P)=>{
+    addCyl(P,.45,.45,.04,32,0,.76,0,C.cloth); addCyl(P,.47,.52,.74,32,0,.37,0,C.cloth2);
+    for(let k=0;k<4;k++){ const r=.32-.08*k; addCyl(P,r,r*.92,.11,24,0,.84+.12*k,0,'#efe6c8'); }
+    addCyl(P,.05,.03,.12,12,0,1.32,0,'#f6efd8'); return 0;}},
+  ilha:{name:'Ilha gastronômica',note:'2,40 × 1,20 m, frios e petiscos',r0:0,build:(it,P)=>{
+    addBox(P,2.4,.86,1.2,0,.43,0,C.cloth2); addBox(P,2.44,.03,1.24,0,.875,0,C.cloth);
+    for(const [x,z,r,c] of [[-.85,-.3,.2,'#8a6a45'],[-.85,.3,.2,C.silver],[.85,-.3,.2,C.silver],[.85,.3,.2,'#8a6a45'],[-.35,-.32,.15,C.silver],[.35,.32,.15,C.silver]]) addCyl(P,r,r,.04,20,x,.91,z,c);
+    addCyl(P,.12,.1,.3,16,0,1.04,0,'#d6d0c3'); addSph(P,.26,0,1.32,0,C.green); return 0;}},
+  cafe:{name:'Estação de café',note:'aparador de 1,80 m',r0:0,build:(it,P)=>{
+    addBox(P,1.8,.9,.6,0,.45,0,'#4b3a2b'); addBox(P,1.84,.04,.64,0,.92,0,'#d8d3c8');
+    addBox(P,.4,.45,.35,-.55,1.165,.05,C.black); addBox(P,.3,.08,.05,-.55,1.05,-.15,C.silver);
+    for(let i=0;i<5;i++) addCyl(P,.04,.035,.08,10,.05+i*.13,.98,-.12,'#f4f3ef');
+    addCyl(P,.12,.12,.25,16,.6,1.065,.1,C.silver); return 0;}},
+  chopeira:{name:'Chopeira',note:'balcão com 3 torneiras',r0:0,build:(it,P)=>{
+    addBox(P,1.2,1.05,.6,0,.525,0,'#1f2023'); addBox(P,1.24,.04,.64,0,1.07,0,'#3a3b3f'); addBox(P,.8,.45,.02,0,.6,-.31,'#c9a24e');
+    addBox(P,.14,.45,.14,0,1.3,.1,C.silver); addBox(P,.5,.08,.08,0,1.48,.1,C.silver);
+    for(const x of[-.18,0,.18]) addCyl(P,.015,.015,.14,8,x,1.4,.02,C.black2); return 0;}},
+  pipoca:{name:'Carrinho de pipoca',note:'1,00 m',r0:0,build:(it,P)=>{
+    addBox(P,1,.7,.55,0,.5,0,'#b0302a'); addBox(P,.72,.45,.48,0,1.08,0,'#ead79a'); addBox(P,.76,.04,.52,0,1.32,0,'#f4f1ea');
+    for(const x of[-.45,.45]) addBox(P,.04,.75,.04,x,1.45,.2,'#d8d3c8');
+    addBox(P,1.1,.05,.7,0,1.84,0,'#b0302a'); addBox(P,1.1,.04,.12,0,1.79,-.33,'#f4f1ea');
+    wheel(P,.2,-.55,.2,0,'#2b2c2f'); wheel(P,.2,.55,.2,0,'#2b2c2f'); addBox(P,.04,.6,.04,.5,.3,-.22,'#2b2c2f'); return 0;}},
+  pufes:{name:'Pufes',note:'conjunto de 4',r0:0,build:(it,P)=>{
+    for(const x of[-.35,.35]) for(const z of[-.35,.35]){ addBox(P,.45,.42,.45,x,.21,z,'#d9cbb3'); addBox(P,.43,.02,.43,x,.43,z,'#cbbb9f'); } return 4;}},
+  luz:{name:'Torre de luz',note:'tripé com 2 moving heads',r0:0,build:(it,P)=>{
+    const V=THREE.Vector3; for(let i=0;i<3;i++){ const a=i/3*Math.PI*2; addBeam(P,new V(0,1,0),new V(.6*Math.cos(a),0,.6*Math.sin(a)),.03,C.black2); }
+    addCyl(P,.025,.025,1.7,8,0,1.85,0,C.black2); addBox(P,1,.05,.05,0,2.7,0,C.black2);
+    for(const x of[-.38,.38]){ addBox(P,.22,.06,.22,x,2.64,0,C.black); addBox(P,.2,.24,.2,x,2.48,0,C.black); addCyl(P,.07,.07,.02,12,x,2.36,0,'#cfd9e0'); } return 0;}},
+  biombo:{name:'Biombo',note:'divisória de 1,80 m de altura, largura ajustável',r0:0,w0:2.4,size:{w:{label:'Largura',min:.6,max:10}},build:(it,P)=>{
+    const w=it.w, n=Math.max(1,Math.round(w/.6)), s=w/n;
+    for(let i=0;i<n;i++){ const x=-w/2+s*(i+.5); addBox(P,s-.03,1.7,.04,x,.95,0,'#e9e4da'); addBox(P,.03,1.8,.06,x-s/2+.015,.9,0,'#3d3832'); }
+    addBox(P,.03,1.8,.06,w/2-.015,.9,0,'#3d3832'); addBox(P,w,.03,.06,0,1.8,0,'#3d3832');
+    for(let i=0;i<=n;i++) addBox(P,.05,.03,.4,-w/2+s*i,.015,0,'#3d3832'); return 0;}},
+  chapelaria:{name:'Chapelaria',note:'balcão com arara de casacos',r0:0,build:(it,P)=>{
+    addBox(P,2,1.05,.6,0,.525,0,'#3b2a1d'); addBox(P,2.04,.04,.64,0,1.07,0,'#d8d3c8');
+    for(const x of[-.95,.95]) addBox(P,.04,1.8,.04,x,.9,.85,C.black2); addBox(P,1.94,.03,.03,0,1.75,.85,C.black2);
+    ['#2b2c2f','#5d4a3a','#1d2733','#7b6f60','#2b2c2f','#3d3832','#1d2733'].forEach((c,i)=>addBox(P,.42,.85,.12,-.78+i*.26,1.27,.85+(i%2?.04:-.04),c)); return 0;}}
+});
 const GROUPS=[
   ['Mesas e cadeiras',['mesa10','mesa8','retangular','imperial','bistro','fileira','cadeira','lounge']],
   ['Palco, som e luz',['palco','pista','telao','caixa','dj','som','portico']],
-  ['Serviço e decoração',['buffet','bar','doces','recepcao','cabine','passarela','planta']]
+  ['Serviço e decoração',['buffet','bar','doces','recepcao','cabine','passarela','planta']],
+  ['Mais para a festa',['arco','painelfoto','espelho','pulpito','champanhe','ilha','cafe','chopeira','pipoca','pufes','luz','biombo','chapelaria']]
 ];
 
 /* --------------------------------------------------- estado dos itens */
